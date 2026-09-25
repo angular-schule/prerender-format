@@ -95,7 +95,7 @@ A route whose last segment is `index` (`/index`, `/docs/index`) fails the build 
 
 ## 🔭 Other frameworks <a name="other-frameworks"></a>
 
-Static site generators have offered this choice for a long time. Astro is the closest match:
+Static site generators have offered this choice for a long time. We decided to borrow the terminology from Astro: `build.format` with `'directory'` and `'file'` became `prerenderFormat` with the same values.
 
 | Framework | Option | `about/index.html` | `about.html` |
 |---|---|---|---|
