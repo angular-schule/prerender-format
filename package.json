@@ -3,6 +3,21 @@
   "version": "0.1.0",
   "description": "Angular application builder that writes prerendered routes as foo.html instead of foo/index.html",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/angular-schule/flat-prerender.git"
+  },
+  "homepage": "https://github.com/angular-schule/flat-prerender#readme",
+  "bugs": {
+    "url": "https://github.com/angular-schule/flat-prerender/issues"
+  },
+  "keywords": [
+    "angular",
+    "builder",
+    "prerender",
+    "ssg",
+    "trailing-slash"
+  ],
   "type": "commonjs",
   "builders": "builders.json",
   "files": [
