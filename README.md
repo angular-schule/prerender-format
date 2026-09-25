@@ -124,7 +124,50 @@ After a successful build, the builder checks that the prerendered pages actually
 
 ## 📁 Known limitations <a name="limitations"></a>
 
-- **Static builds only.** With `"outputMode": "server"` (or SSR without `outputMode`) the build fails, because the Angular SSR server looks up prerendered pages as `index.html`. An SSR entry that only renders at build time is fine.
+- **Static builds only.** `prerenderFormat: "file"` is for static hosting. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the build fails: a server needs no `.html` files, it answers `/foo` directly without redirecting to `/foo/`, and the Angular SSR server looks up prerendered pages as `index.html`.
+
+  ✅ Works: static output, the `ssr` entry only renders at build time
+
+  ```json
+  "options": {
+    "outputMode": "static",
+    "server": "src/main.server.ts",
+    "ssr": { "entry": "src/server.ts" },
+    "prerenderFormat": "file"
+  }
+  ```
+
+  ✅ Works: prerendering without SSR
+
+  ```json
+  "options": {
+    "server": "src/main.server.ts",
+    "prerender": true,
+    "prerenderFormat": "file"
+  }
+  ```
+
+  ❌ Fails: a server is deployed
+
+  ```json
+  "options": {
+    "outputMode": "server",
+    "server": "src/main.server.ts",
+    "ssr": { "entry": "src/server.ts" },
+    "prerenderFormat": "file"
+  }
+  ```
+
+  ❌ Fails: SSR without `outputMode` also deploys a server
+
+  ```json
+  "options": {
+    "server": "src/main.server.ts",
+    "ssr": { "entry": "src/server.ts" },
+    "prerenderFormat": "file"
+  }
+  ```
+
 - **`ng test` warning.** The `@angular/build:unit-test` builder logs a warning when its `buildTarget` uses a builder other than `@angular/build:application`. Tests run normally.
 
 ## 🏁 License <a name="license"></a>
