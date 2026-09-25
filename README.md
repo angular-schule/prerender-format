@@ -23,12 +23,18 @@
 
 ## 💡 Why? <a name="why"></a>
 
-Angular's prerendering (SSG) writes every route into its own folder: the route `blog/my-article` becomes `blog/my-article/index.html`.
-Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`, and the Angular router then removes the trailing slash again.
-Every direct visit (search engine, bookmark, shared link) starts with a redirect.
+### Today: you can't have both
 
-With this builder, the same route becomes `blog/my-article.html`.
-Hosts like Cloudflare Pages serve that file under `/blog/my-article` directly, with status 200.
+Angular's prerendering (SSG) writes every route into its own folder: the route `blog/my-article` becomes `blog/my-article/index.html`.
+Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`.
+So you have to choose:
+
+- **Nice looking URLs, but redirects:** links, canonical tags and sitemap use `/blog/my-article`. Every direct visit (search engine, bookmark, shared link) starts with a 301/308 redirect to `/blog/my-article/`, and the Angular router then removes the trailing slash again.
+- **No redirects, but trailing slashes everywhere:** links, canonical tags and sitemap use `/blog/my-article/`. Pages answer with 200, but every URL ends with a slash, and the Angular router needs extra configuration to keep it.
+
+### With this builder: both
+
+The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages serve it under `/blog/my-article` directly, with status 200.
 
 - **Nice looking URLs:** `/blog/my-article`, without a trailing slash, in links, in the address bar and in the server response alike.
 - **Flawless SEO:** every page answers directly with 200. Search engines see no redirect, and the URL they crawl is the same one your canonical tag, hreflang links and sitemap point to.
