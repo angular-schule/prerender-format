@@ -124,7 +124,7 @@ After a successful build, the builder checks that the prerendered pages actually
 
 ## 📁 Known limitations <a name="limitations"></a>
 
-- **Static builds only.** `prerenderFormat: "file"` is for static hosting. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the build fails: a server needs no `.html` files, it answers `/foo` directly without redirecting to `/foo/`, and the Angular SSR server looks up prerendered pages as `index.html`.
+- **Static builds only, by design.** `prerenderFormat: "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the build fails: a server needs no `.html` files, it answers `/foo` directly without redirecting to `/foo/`, and the Angular SSR server looks up prerendered pages as `index.html`.
 
   ✅ Works: static output, the `ssr` entry only renders at build time
 
