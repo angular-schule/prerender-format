@@ -1,0 +1,9 @@
+{
+  "builders": {
+    "application": {
+      "implementation": "./src/application.js",
+      "schema": "./src/schema.json",
+      "description": "Build an application with @angular/build:application, optionally writing prerendered routes as 'foo.html' instead of 'foo/index.html'."
+    }
+  }
+}

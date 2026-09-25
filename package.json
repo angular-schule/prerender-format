@@ -1,0 +1,27 @@
+{
+  "name": "@angular-schule/flat-prerender",
+  "version": "0.1.0",
+  "description": "Angular application builder that writes prerendered routes as foo.html instead of foo/index.html",
+  "license": "MIT",
+  "type": "commonjs",
+  "builders": "builders.json",
+  "files": [
+    "builders.json",
+    "src"
+  ],
+  "scripts": {
+    "build:schema": "node scripts/build-schema.mjs",
+    "test": "node scripts/build-schema.mjs --check && node --test"
+  },
+  "peerDependencies": {
+    "@angular-devkit/architect": ">=0.2200.0 <0.2300.0",
+    "@angular/build": "^22.0.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/architect": "0.2200.7",
+    "@angular/build": "22.0.7"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
