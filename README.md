@@ -4,7 +4,7 @@
 [![GitHub Actions](https://github.com/angular-schule/prerender-format/actions/workflows/main.yml/badge.svg)](https://github.com/angular-schule/prerender-format/actions/workflows/main.yml)
 [![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?color=blue&style=flat-square)](http://opensource.org/licenses/MIT)
 
-**Prerender your Angular app as `about.html` instead of `about/index.html`: no more trailing slash redirects! 🚀**
+**Nice looking URLs and flawless SEO for your prerendered Angular app: `about.html` instead of `about/index.html`, no more trailing slash redirects! 🚀**
 
 **Table of contents:**
 
@@ -29,6 +29,10 @@ Every direct visit (search engine, bookmark, shared link) starts with a redirect
 
 With this builder, the same route becomes `blog/my-article.html`.
 Hosts like Cloudflare Pages serve that file under `/blog/my-article` directly, with status 200.
+
+- **Nice looking URLs:** `/blog/my-article`, without a trailing slash, in links, in the address bar and in the server response alike.
+- **Flawless SEO:** every page answers directly with 200. Search engines see no redirect, and the URL they crawl is the same one your canonical tag, hreflang links and sitemap point to.
+- **Old links keep working:** addresses with a trailing slash redirect to the address without it (measured on Cloudflare Pages, see [Hosts](#hosts)).
 
 This is the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173).
 The builder is a stopgap: developed and tested for Angular 22, until Angular has a built-in option and this package is no longer needed.
