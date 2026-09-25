@@ -41,7 +41,11 @@ The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages s
 - **Old links keep working:** addresses with a trailing slash redirect to the address without it (measured on Cloudflare Pages, see [Hosts](#hosts)).
 
 This is the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173).
+The pull request [angular/angular-cli#34180](https://github.com/angular/angular-cli/pull/34180) adds it to Angular itself, with the same name and values.
 The builder is a stopgap: developed and tested for Angular 22, until Angular has a built-in option and this package is no longer needed.
+If you want the option in Angular, please give the issue and the pull request a 👍.
+
+**Read more:** [Static Angular SSR: Nice URLs and good SEO - you can't have both (but here's a fix!)](https://angular.schule/blog/2026-09-static-angular-ssr-trailing-slash)
 
 ## ⚠️ Prerequisites <a name="prerequisites"></a>
 
