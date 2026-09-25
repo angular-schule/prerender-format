@@ -1,0 +1,75 @@
+import { workspaces } from '@angular-devkit/core';
+import { SchematicContext, SchematicsException, Tree } from '@angular-devkit/schematics';
+
+import { createHost } from './utils';
+
+interface NgAddOptions {
+  project: string;
+}
+
+export const BUILDER_NAME = '@angular-schule/flat-prerender:application';
+const ANGULAR_BUILDER_NAME = '@angular/build:application';
+
+export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: SchematicContext) => {
+  const host = createHost(tree);
+  const { workspace } = await workspaces.readWorkspace('/', host);
+
+  if (!options.project) {
+    if (workspace.projects.size === 1) {
+      // If there is only one project, return that one.
+      options.project = Array.from(workspace.projects.keys())[0];
+    } else {
+      throw new SchematicsException(
+        'There is more than one project in your workspace. Please select it manually by using the --project argument.'
+      );
+    }
+  }
+
+  const project = workspace.projects.get(options.project);
+  if (!project) {
+    throw new SchematicsException('The specified Angular project is not defined in this workspace');
+  }
+
+  if (project.extensions.projectType !== 'application') {
+    throw new SchematicsException(
+      `Flat prerender output requires an Angular project type of "application" in angular.json`
+    );
+  }
+
+  const buildTarget = project.targets.get('build');
+  if (!buildTarget) {
+    throw new SchematicsException(
+      `Cannot find build target for the Angular project "${options.project}" in angular.json.`
+    );
+  }
+
+  if (buildTarget.builder !== ANGULAR_BUILDER_NAME && buildTarget.builder !== BUILDER_NAME) {
+    throw new SchematicsException(
+      `The build target of "${options.project}" uses "${buildTarget.builder}". ` +
+        `@angular-schule/flat-prerender replaces "${ANGULAR_BUILDER_NAME}" only.`
+    );
+  }
+
+  buildTarget.builder = BUILDER_NAME;
+  buildTarget.options = { ...buildTarget.options, prerenderOutputStyle: 'flat' };
+
+  await workspaces.writeWorkspace(workspace, host);
+
+  const outputMode = buildTarget.options.outputMode;
+
+  context.logger.info('');
+  context.logger.info('🚀 @angular-schule/flat-prerender is ready!');
+  context.logger.info('');
+  if (outputMode !== 'static') {
+    context.logger.warn(
+      `⚠️  Flat prerender output requires "outputMode": "static" in the build options (currently: ${JSON.stringify(outputMode)}).`
+    );
+    context.logger.info('');
+  }
+  context.logger.info('Next steps:');
+  context.logger.info('  1. Make sure your host serves foo.html under /foo without a redirect.');
+  context.logger.info('  2. Build via: ng build');
+  context.logger.info('  3. Have a nice day!');
+
+  return tree;
+};

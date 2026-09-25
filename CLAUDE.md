@@ -1,0 +1,84 @@
+# CLAUDE.md
+
+This file provides guidance when working with code in this repository.
+
+## Overview
+
+`@angular-schule/flat-prerender` is an Angular CLI builder that wraps `@angular/build:application`. With `prerenderOutputStyle: "flat"`, prerendered routes are written as `foo.html` instead of `foo/index.html`, so static hosts serve `/foo` without a trailing slash redirect. It implements the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173). Structure and conventions follow [angular-cli-ghpages](https://github.com/angular-schule/angular-cli-ghpages).
+
+## Development Commands
+
+All development commands must be run from the `src` directory:
+
+```bash
+cd src
+```
+
+**IMPORTANT:** The `src/.npmrc` file contains `ignore-scripts=false` to override global npm settings. **DO NOT DELETE OR MODIFY this file** - it's required for build scripts to run.
+
+### Build
+```bash
+npm run build
+```
+Build process: `prebuild` (clean) → `build` (tsc) → `postbuild` (copy metadata, schema, README and LICENSE to dist/).
+
+### Schema
+```bash
+npm run build:schema
+```
+`application/schema.json` is generated: the schema of `@angular/build:application` from the installed version plus `prerenderOutputStyle`. Regenerate it after updating `@angular/build` and commit the result. `npm test` fails if it is out of sync.
+
+### Test
+```bash
+npm test
+```
+
+### Local Development
+
+For testing changes locally with an Angular project:
+
+1. Build and pack from `src/dist`:
+   ```bash
+   cd src
+   npm run build
+   cd dist
+   npm pack
+   ```
+
+2. In your Angular test project:
+   ```bash
+   npm install --save-dev /path/to/angular-schule-flat-prerender-X.X.X.tgz
+   ng add @angular-schule/flat-prerender
+   ng build
+   ```
+
+### Publishing
+
+Publishing uses [npm Trusted Publishers](https://docs.npmjs.com/trusted-publishers) with OIDC – no tokens stored in CI!
+
+1. Go to **Actions** → **Publish to npm**
+2. Click **Run workflow** → select branch
+3. Leave "Dry-run" checked to test, or uncheck for real publish
+4. Wait for approval (environment `npm-publish`)
+
+Publishes with provenance attestation for supply chain security.
+
+For pre-release versions, after publishing:
+```bash
+npm dist-tag add @angular-schule/flat-prerender@X.X.X-rc.X next
+```
+
+## Architecture
+
+1. **Builder** (`src/application/`):
+   - `builder.ts` - Angular builder entry point, called by `ng build`. Strips `prerenderOutputStyle`, refuses flat output when a server is shipped, then delegates to `buildApplication`.
+   - `flat-output.ts` - Wraps the internal `prerenderPages()` of `@angular/build`. `execute-post-bundle.js` reads it from the module's exports object at call time, so replacing the export takes effect for regular and localized builds.
+   - `schema.json` - Generated, see above.
+
+2. **Schematic** (`src/ng-add.ts`):
+   - Implements `ng add @angular-schule/flat-prerender`
+   - Swaps the build target's builder and sets `prerenderOutputStyle: "flat"`
+
+### Internal API
+
+`prerenderPages()` in `@angular/build/src/utils/server-rendering/prerender.js` is not public. The builder fails loudly if the module or the export is missing, and `flat-output.spec.ts` checks the call site in `execute-post-bundle.js`. After every `@angular/build` update: run the tests and the CI job that builds a fresh Angular app.

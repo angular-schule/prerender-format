@@ -1,0 +1,98 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - name: Build and test
+        working-directory: src
+        run: |
+          npm ci
+          npm run build
+          npm run test
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: src/dist
+          retention-days: 1
+
+  # Builds a fresh Angular app with SSG and checks the flat output end to end:
+  # ng add swaps the builder, ng build writes about.html next to index.html.
+  # The project is created OUTSIDE the repo so it gets its own node_modules.
+  test-angular-versions:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    env:
+      NG_CLI_ANALYTICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: src/dist
+
+      - name: Pack @angular-schule/flat-prerender
+        working-directory: src/dist
+        run: npm pack --pack-destination /tmp
+
+      - name: Test Angular 22
+        run: |
+          cd /tmp
+          npx @angular/cli@22 new test-app-22 --defaults --ssr --skip-git
+          cd test-app-22
+          npm install --save-dev /tmp/angular-schule-flat-prerender-*.tgz
+          npx ng add @angular-schule/flat-prerender --skip-confirmation
+          # ng new --ssr uses outputMode "server", which flat output refuses
+          if npx ng build; then echo "Expected the build to fail with outputMode server"; exit 1; fi
+          node -e '
+            const fs = require("fs");
+            const a = JSON.parse(fs.readFileSync("angular.json", "utf8"));
+            a.projects["test-app-22"].architect.build.options.outputMode = "static";
+            fs.writeFileSync("angular.json", JSON.stringify(a, null, 2));
+          '
+          cat > src/app/app.routes.ts <<'EOF'
+          import { Routes } from '@angular/router';
+          import { App } from './app';
+
+          export const routes: Routes = [
+            { path: '', component: App },
+            { path: 'about', component: App },
+            { path: 'blog/article', component: App }
+          ];
+          EOF
+          npx ng build
+          cd dist/test-app-22/browser
+          find . -name '*.html' | sort
+          test -f index.html
+          test -f about.html
+          test -f blog/article.html
+          test ! -e about/index.html
+          test ! -e blog/article/index.html
+          echo "Angular 22: flat prerender output successful"

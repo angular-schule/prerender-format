@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "target": "es2022",
+    "noImplicitAny": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "inlineSources": true,
+    "declaration": false,
+    "removeComments": true,
+    "strictNullChecks": true,
+    "lib": ["es2022"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": ["vitest/globals", "node"]
+  },
+  "exclude": ["node_modules", "dist"]
+}

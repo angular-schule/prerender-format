@@ -1,0 +1,62 @@
+{
+  "name": "@angular-schule/flat-prerender",
+  "version": "0.1.0",
+  "description": "Angular application builder that writes prerendered routes as foo.html instead of foo/index.html (no trailing slash redirects)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "copyfiles builders.json collection.json ng-add-schema.json package.json application/schema.json dist && copyfiles -f ../README.md ../LICENSE dist",
+    "build:schema": "node scripts/build-schema.mjs",
+    "test": "node scripts/build-schema.mjs --check && vitest run"
+  },
+  "schematics": "./collection.json",
+  "builders": "./builders.json",
+  "ng-add": {
+    "save": "devDependencies"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/angular-schule/flat-prerender.git"
+  },
+  "keywords": [
+    "angular",
+    "angular-cli",
+    "builder",
+    "prerender",
+    "ssg",
+    "static site",
+    "trailing slash",
+    "github pages",
+    "cloudflare pages"
+  ],
+  "author": {
+    "name": "Angular.Schule (by Johannes Hoppe)"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/angular-schule/flat-prerender/issues"
+  },
+  "homepage": "https://github.com/angular-schule/flat-prerender/#readme",
+  "devDependencies": {
+    "@angular/build": "^22.0.7",
+    "@types/node": "^24.0.0",
+    "copyfiles": "^2.4.1",
+    "rimraf": "^6.0.1",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.8"
+  },
+  "dependencies": {
+    "@angular-devkit/architect": ">=0.2200.0 <0.2300.0",
+    "@angular-devkit/core": ">=22.0.0 <23.0.0",
+    "@angular-devkit/schematics": ">=22.0.0 <23.0.0"
+  },
+  "peerDependencies": {
+    "@angular/build": ">=22.0.0 <23.0.0"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "title": "Application builder with flat prerender output (based on @angular/build 22.0.7)",
+  "title": "Application builder with flat prerender output (based on @angular/build 22.2.0)",
   "description": "Application builder target options",
   "type": "object",
   "properties": {
@@ -553,8 +553,7 @@
             },
             "preloadInitial": {
               "type": "boolean",
-              "default": true,
-              "description": "Generates 'preload', 'modulepreload', and 'preconnect' link elements for initial application files and resources."
+              "description": "Generates 'preload', 'modulepreload', and 'preconnect' link elements for initial application files and resources. Defaults to false when a service worker is enabled; otherwise true."
             }
           },
           "required": [

@@ -1,0 +1,11 @@
+{
+  "$schema": "@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Switch the build target to @angular-schule/flat-prerender with flat prerender output",
+      "factory": "./ng-add#ngAdd",
+      "schema": "./ng-add-schema.json",
+      "aliases": ["install"]
+    }
+  }
+}

@@ -1,8 +1,9 @@
 {
+  "$schema": "@angular-devkit/architect/src/builders-schema.json",
   "builders": {
     "application": {
-      "implementation": "./src/application.js",
-      "schema": "./src/schema.json",
+      "implementation": "./application/builder",
+      "schema": "./application/schema.json",
       "description": "Build an application with @angular/build:application, optionally writing prerendered routes as 'foo.html' instead of 'foo/index.html'."
     }
   }

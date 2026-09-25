@@ -1,6 +1,19 @@
-'use strict';
+import * as path from 'path';
 
-const path = require('node:path');
+/** A prerendered page as returned by `prerenderPages()` of `@angular/build`. */
+export interface PrerenderedFile {
+  content: string;
+  appShellRoute: boolean;
+}
+
+export type PrerenderOutput = Record<string, PrerenderedFile>;
+
+export interface PrerenderResult {
+  output: PrerenderOutput;
+  [key: string]: unknown;
+}
+
+export type PrerenderPages = (...args: unknown[]) => Promise<PrerenderResult>;
 
 const INDEX_SUFFIX = '/index.html';
 const PATCHED = Symbol.for('@angular-schule/flat-prerender:patched');
@@ -10,7 +23,7 @@ const PRERENDER_MODULE = 'src/utils/server-rendering/prerender.js';
  * Maps a prerender output path from `foo/index.html` to `foo.html`.
  * The root `index.html` of a build (start page, or locale start page with its base href) stays as is.
  */
-function toFlatPath(outPath) {
+export function toFlatPath(outPath: string): string {
   if (!outPath.endsWith(INDEX_SUFFIX)) {
     return outPath;
   }
@@ -19,12 +32,14 @@ function toFlatPath(outPath) {
 }
 
 /** Renames all keys of a prerender `output` record, failing on collisions. */
-function flattenOutput(output) {
-  const flat = {};
+export function flattenOutput(output: PrerenderOutput): PrerenderOutput {
+  const flat: PrerenderOutput = {};
   for (const [outPath, file] of Object.entries(output)) {
     const flatPath = toFlatPath(outPath);
     if (Object.hasOwn(flat, flatPath)) {
-      throw new Error(`Flat prerender output: '${outPath}' and another route both map to '${flatPath}'.`);
+      throw new Error(
+        `Flat prerender output: '${outPath}' and another route both map to '${flatPath}'.`
+      );
     }
     flat[flatPath] = file;
   }
@@ -33,21 +48,25 @@ function flattenOutput(output) {
 }
 
 /** Wraps `prerenderPages` so that its `output` record uses flat file names. */
-function wrapPrerenderPages(prerenderPages) {
-  const wrapped = async function (...args) {
+export function wrapPrerenderPages(prerenderPages: PrerenderPages): PrerenderPages {
+  const wrapped = async function (this: unknown, ...args: unknown[]) {
     const result = await prerenderPages.apply(this, args);
     if (!result || typeof result.output !== 'object' || result.output === null) {
       throw new Error(
         'Flat prerender output: prerenderPages() returned no output record. ' +
-          'This version of @angular/build is not supported.',
+          'This version of @angular/build is not supported.'
       );
     }
 
     return { ...result, output: flattenOutput(result.output) };
   };
-  wrapped[PATCHED] = true;
+  Object.defineProperty(wrapped, PATCHED, { value: true });
 
   return wrapped;
+}
+
+function isPatched(fn: PrerenderPages): boolean {
+  return (fn as unknown as Record<symbol, unknown>)[PATCHED] === true;
 }
 
 /**
@@ -55,29 +74,28 @@ function wrapPrerenderPages(prerenderPages) {
  * `execute-post-bundle.js` reads the function from the module's exports object on every call,
  * so the replacement takes effect for regular and localized builds alike.
  */
-function installFlatPrerender(angularBuildRoot) {
+export function installFlatPrerender(angularBuildRoot: string): void {
   const modulePath = path.join(angularBuildRoot, PRERENDER_MODULE);
-  let prerenderModule;
+  let prerenderModule: { prerenderPages?: PrerenderPages };
   try {
     prerenderModule = require(modulePath);
   } catch (error) {
     throw new Error(
       `Flat prerender output: cannot load '${modulePath}'. This version of @angular/build is not supported.`,
-      { cause: error },
+      { cause: error }
     );
   }
 
   const descriptor = Object.getOwnPropertyDescriptor(prerenderModule, 'prerenderPages');
-  if (typeof prerenderModule.prerenderPages !== 'function' || !descriptor?.writable) {
+  const prerenderPages = prerenderModule.prerenderPages;
+  if (typeof prerenderPages !== 'function' || !descriptor?.writable) {
     throw new Error(
       `Flat prerender output: '${modulePath}' exports no replaceable prerenderPages(). ` +
-        'This version of @angular/build is not supported.',
+        'This version of @angular/build is not supported.'
     );
   }
 
-  if (!prerenderModule.prerenderPages[PATCHED]) {
-    prerenderModule.prerenderPages = wrapPrerenderPages(prerenderModule.prerenderPages);
+  if (!isPatched(prerenderPages)) {
+    prerenderModule.prerenderPages = wrapPrerenderPages(prerenderPages);
   }
 }
-
-module.exports = { toFlatPath, flattenOutput, wrapPrerenderPages, installFlatPrerender };

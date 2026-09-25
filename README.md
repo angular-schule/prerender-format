@@ -1,20 +1,53 @@
 # @angular-schule/flat-prerender
 
-An Angular application builder that writes prerendered routes as `foo.html` instead of `foo/index.html`.
+[![NPM version][npm-image]][npm-url]
+[![GitHub Actions](https://github.com/angular-schule/flat-prerender/actions/workflows/main.yml/badge.svg)](https://github.com/angular-schule/flat-prerender/actions/workflows/main.yml)
+[![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?color=blue&style=flat-square)](http://opensource.org/licenses/MIT)
 
-Angular's prerendering (SSG) writes every route into its own folder: `blog/my-article` becomes `blog/my-article/index.html`. Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`, and the Angular router then removes the trailing slash again. Every direct visit (search engine, bookmark, shared link) starts with a redirect.
+**Prerender your Angular app as `about.html` instead of `about/index.html`: no more trailing slash redirects! 🚀**
 
-With `prerenderOutputStyle: "flat"`, the same route becomes `blog/my-article.html`. Hosts like GitHub Pages and Cloudflare Pages serve that file under `/blog/my-article` directly.
+**Table of contents:**
+
+1. [💡 Why?](#why)
+2. [⚠️ Prerequisites](#prerequisites)
+3. [🚀 Quick Start](#quickstart)
+4. [⚙️ Installation](#installation)
+5. [📦 Options](#options)
+6. [🌍 Hosts](#hosts)
+7. [🔧 How it works](#how-it-works)
+8. [📁 Known limitations](#limitations)
+9. [🏁 License](#license)
+
+<hr>
+
+## 💡 Why? <a name="why"></a>
+
+Angular's prerendering (SSG) writes every route into its own folder: the route `blog/my-article` becomes `blog/my-article/index.html`.
+Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`, and the Angular router then removes the trailing slash again.
+Every direct visit (search engine, bookmark, shared link) starts with a redirect.
+
+With this builder, the same route becomes `blog/my-article.html`.
+Hosts like Cloudflare Pages serve that file under `/blog/my-article` directly, with status 200.
 
 This is the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173).
+As long as Angular has no built-in option, this builder provides it.
 
-## Usage
+## ⚠️ Prerequisites <a name="prerequisites"></a>
 
-```bash
-npm install --save-dev @angular-schule/flat-prerender
+- Angular 22 with the application builder (`@angular/build:application`)
+- `"outputMode": "static"`
+- A host that serves `foo.html` under `/foo` without a redirect (see [Hosts](#hosts))
+
+## 🚀 Quick Start <a name="quickstart"></a>
+
+```sh
+ng add @angular-schule/flat-prerender
+ng build
 ```
 
-In `angular.json`, swap the builder of your build target and set the option:
+## ⚙️ Installation <a name="installation"></a>
+
+`ng add @angular-schule/flat-prerender` installs the package and changes the build target in your `angular.json`:
 
 ```json
 "build": {
@@ -26,35 +59,56 @@ In `angular.json`, swap the builder of your build target and set the option:
 }
 ```
 
-All other options are the ones of `@angular/build:application`.
+All other options stay as they are: the builder accepts every option of `@angular/build:application` and passes it on.
+Use `--project` to choose the project in a workspace with several projects.
+
+## 📦 Options <a name="options"></a>
+
+#### prerenderOutputStyle
+
+- **optional**
+- Default: `directory`
 
 | `prerenderOutputStyle` | Route `blog/my-article` | Start page |
 |---|---|---|
-| `directory` (default) | `blog/my-article/index.html` | `index.html` |
+| `directory` | `blog/my-article/index.html` | `index.html` |
 | `flat` | `blog/my-article.html` | `index.html` |
 
-Parent and child routes live side by side: `blog.html` next to the folder `blog/`. The start page of each locale (base href `/en/`) stays `index.html`.
+Parent and child routes live side by side: `blog.html` next to the folder `blog/`.
+The start page of each locale (for example with base href `/en/`) stays `index.html`.
 
-## Requirements
+## 🌍 Hosts <a name="hosts"></a>
 
-- `outputMode: "static"`. With a server (`outputMode: "server"` or SSR without `outputMode`) the build fails, because the Angular SSR server looks up prerendered pages as `index.html`. An SSR entry that only renders at build time is fine.
-- A host that serves `foo.html` under `/foo` without a redirect. Check your host before switching.
-- `@angular/build` 22.
+Measured on **Cloudflare Pages** with a flat build:
 
-## How it works
+| Request | Response |
+|---|---|
+| `/foo` | 200, `foo.html` |
+| `/foo/` | 308 → `/foo` |
+| `/foo.html` | 308 → `/foo` |
+| `/foo` with `foo.html` next to the folder `foo/` | 200, `foo.html` |
 
-The builder calls `buildApplication` from `@angular/build` and wraps its internal `prerenderPages()` function, which returns the prerendered pages as a record of output paths. The wrapper renames `foo/index.html` to `foo.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
+Old addresses with a trailing slash keep working, they redirect to the address without it.
 
-`prerenderPages()` is internal API. If a version of `@angular/build` changes it, the build fails with a clear error instead of silently writing `index.html` files.
+Other hosts (GitHub Pages, Firebase Hosting, Vercel, Netlify) are listed in the Angular issue as supporting this, some of them behind a setting.
+Check your host before switching.
 
-## Known limitation
+## 🔧 How it works <a name="how-it-works"></a>
 
-The `@angular/build:unit-test` builder logs a warning when its `buildTarget` uses a builder other than `@angular/build:application`. Tests run normally.
+The builder calls `buildApplication` from `@angular/build` and wraps its internal `prerenderPages()` function, which returns the prerendered pages as a record of output paths.
+The wrapper renames `foo/index.html` to `foo.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
 
-## Development
+`prerenderPages()` is internal API.
+If a version of `@angular/build` changes it, the build fails with a clear error instead of silently writing `index.html` files.
 
-```bash
-npm install
-npm run build:schema   # regenerates src/schema.json from the installed @angular/build
-npm test               # checks the schema and runs the unit tests
-```
+## 📁 Known limitations <a name="limitations"></a>
+
+- **Static builds only.** With `"outputMode": "server"` (or SSR without `outputMode`) the build fails, because the Angular SSR server looks up prerendered pages as `index.html`. An SSR entry that only renders at build time is fine.
+- **`ng test` warning.** The `@angular/build:unit-test` builder logs a warning when its `buildTarget` uses a builder other than `@angular/build:application`. Tests run normally.
+
+## 🏁 License <a name="license"></a>
+
+Code released under the [MIT license](LICENSE).
+
+[npm-url]: https://www.npmjs.com/package/@angular-schule/flat-prerender
+[npm-image]: https://badge.fury.io/js/@angular-schule%2Fflat-prerender.svg
