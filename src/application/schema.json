@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "title": "Application builder with flat prerender output (based on @angular/build 22.2.0)",
+  "title": "Application builder with prerenderFormat (based on @angular/build 22.2.0)",
   "description": "Application builder target options",
   "type": "object",
   "properties": {
@@ -666,14 +666,14 @@
         "server"
       ]
     },
-    "prerenderOutputStyle": {
+    "prerenderFormat": {
       "type": "string",
       "enum": [
         "directory",
-        "flat"
+        "file"
       ],
       "default": "directory",
-      "description": "File layout of prerendered routes. 'directory' writes 'foo/index.html', which works on every web server. 'flat' writes 'foo.html' (the start page stays 'index.html'). Only use 'flat' if your host serves 'foo.html' under '/foo' without a redirect, for example GitHub Pages or Cloudflare Pages. Requires 'outputMode: \"static\"'."
+      "description": "File layout of prerendered routes. 'directory' writes 'foo/index.html', which works on every web server. 'file' writes 'foo.html' (the start page stays 'index.html'), like Astro's build.format. Only use 'file' if your host serves 'foo.html' under '/foo' without a redirect, for example GitHub Pages or Cloudflare Pages. Requires 'outputMode: \"static\"'."
     }
   },
   "additionalProperties": false,
@@ -796,5 +796,5 @@
       ]
     }
   },
-  "$id": "AngularSchuleFlatPrerenderApplicationSchema"
+  "$id": "AngularSchulePrerenderFormatApplicationSchema"
 }

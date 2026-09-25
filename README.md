@@ -1,7 +1,7 @@
-# @angular-schule/flat-prerender
+# @angular-schule/prerender-format
 
 [![NPM version][npm-image]][npm-url]
-[![GitHub Actions](https://github.com/angular-schule/flat-prerender/actions/workflows/main.yml/badge.svg)](https://github.com/angular-schule/flat-prerender/actions/workflows/main.yml)
+[![GitHub Actions](https://github.com/angular-schule/prerender-format/actions/workflows/main.yml/badge.svg)](https://github.com/angular-schule/prerender-format/actions/workflows/main.yml)
 [![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?color=blue&style=flat-square)](http://opensource.org/licenses/MIT)
 
 **Prerender your Angular app as `about.html` instead of `about/index.html`: no more trailing slash redirects! 🚀**
@@ -42,21 +42,21 @@ The builder is a stopgap: developed and tested for Angular 22, until Angular has
 ## 🚀 Quick Start <a name="quickstart"></a>
 
 ```sh
-ng add @angular-schule/flat-prerender
+ng add @angular-schule/prerender-format
 ng build
 ```
 
 ## ⚙️ Installation <a name="installation"></a>
 
-`ng add @angular-schule/flat-prerender` installs the package and changes the builder of your build target in `angular.json` and sets `prerenderOutputStyle`.
+`ng add @angular-schule/prerender-format` installs the package and changes the builder of your build target in `angular.json` and sets `prerenderFormat`.
 Your build must already use `"outputMode": "static"`: if the build target (or one of its configurations) ships an SSR server, `ng add` stops and tells you so.
 
 ```json
 "build": {
-  "builder": "@angular-schule/flat-prerender:application",
+  "builder": "@angular-schule/prerender-format:application",
   "options": {
     "outputMode": "static",
-    "prerenderOutputStyle": "flat"
+    "prerenderFormat": "file"
   }
 }
 ```
@@ -66,15 +66,17 @@ Use `--project` to choose the project in a workspace with several projects.
 
 ## 📦 Options <a name="options"></a>
 
-#### prerenderOutputStyle
+#### prerenderFormat
 
 - **optional**
 - Default: `directory`
 
-| `prerenderOutputStyle` | Route `blog/my-article` | Start page |
+| `prerenderFormat` | Route `blog/my-article` | Start page |
 |---|---|---|
 | `directory` | `blog/my-article/index.html` | `index.html` |
-| `flat` | `blog/my-article.html` | `index.html` |
+| `file` | `blog/my-article.html` | `index.html` |
+
+The name and the values follow Astro's [`build.format`](#other-frameworks).
 
 Parent and child routes live side by side: `blog.html` next to the folder `blog/`.
 The start page of each locale (for example with base href `/en/`) stays `index.html`.
@@ -98,7 +100,7 @@ Astro's documentation recommends `build.format: 'file'` together with `trailingS
 
 ## 🌍 Hosts <a name="hosts"></a>
 
-Measured on **Cloudflare Pages** with a flat build:
+Measured on **Cloudflare Pages** with `prerenderFormat: "file"`:
 
 | Request | Response |
 |---|---|
@@ -129,5 +131,5 @@ After a successful build, the builder checks that the prerendered pages actually
 
 Code released under the [MIT license](LICENSE).
 
-[npm-url]: https://www.npmjs.com/package/@angular-schule/flat-prerender
-[npm-image]: https://badge.fury.io/js/@angular-schule%2Fflat-prerender.svg
+[npm-url]: https://www.npmjs.com/package/@angular-schule/prerender-format
+[npm-image]: https://badge.fury.io/js/@angular-schule%2Fprerender-format.svg

@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/schema",
-  "$id": "flat-prerender-ng-add-schematic",
-  "title": "@angular-schule/flat-prerender ng-add schematic",
+  "$id": "prerender-format-ng-add-schematic",
+  "title": "@angular-schule/prerender-format ng-add schematic",
   "type": "object",
   "properties": {
     "project": {
       "type": "string",
-      "description": "The project whose build target should use flat prerender output",
+      "description": "The project whose build target should use prerenderFormat 'file'",
       "$default": {
         "$source": "projectName"
       }

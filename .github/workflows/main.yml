@@ -34,7 +34,7 @@ jobs:
           path: src/dist
           retention-days: 1
 
-  # Builds a fresh Angular app with SSG and checks the flat output end to end,
+  # Builds a fresh Angular app with SSG and checks the "file" output end to end,
   # for the lowest and the latest supported Angular 22 version.
   # See .github/scripts/test-angular-app.sh for the checks.
   test-angular-versions:
@@ -63,7 +63,7 @@ jobs:
           name: dist
           path: src/dist
 
-      - name: Pack @angular-schule/flat-prerender
+      - name: Pack @angular-schule/prerender-format
         working-directory: src/dist
         run: npm pack --pack-destination /tmp
 
@@ -72,5 +72,5 @@ jobs:
           cd /tmp
           bash "$GITHUB_WORKSPACE/.github/scripts/test-angular-app.sh" \
             "npx --yes @angular/cli@${{ matrix.cli }}" \
-            "$(ls /tmp/angular-schule-flat-prerender-*.tgz)" \
+            "$(ls /tmp/angular-schule-prerender-format-*.tgz)" \
             "${{ matrix.range }}"

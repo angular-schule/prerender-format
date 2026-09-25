@@ -44,7 +44,7 @@ jobs:
         working-directory: src/dist
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "📦 Package: @angular-schule/flat-prerender"
+          echo "📦 Package: @angular-schule/prerender-format"
           echo "📌 Version: $VERSION"
           echo "🏷️  Tag: ${{ inputs.tag }}"
           echo ""
@@ -76,4 +76,4 @@ jobs:
           echo "==============="
           echo ""
           echo "✅ Published successfully with provenance!"
-          echo "   https://www.npmjs.com/package/@angular-schule/flat-prerender"
+          echo "   https://www.npmjs.com/package/@angular-schule/prerender-format"

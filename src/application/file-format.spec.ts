@@ -2,38 +2,38 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import {
-  flattenOutput,
+  toFileOutput,
   getPrerenderCalls,
-  installFlatPrerender,
+  installFileFormat,
   PrerenderPages,
-  toFlatPath,
+  toFilePath,
   wrapPrerenderPages
-} from './flat-output';
+} from './file-format';
 
 const angularBuildRoot = path.dirname(require.resolve('@angular/build/package.json'));
 
-describe('toFlatPath', () => {
-  it('maps nested index files to flat files', () => {
-    expect(toFlatPath('blog/index.html')).toBe('blog.html');
-    expect(toFlatPath('blog/my-article/index.html')).toBe('blog/my-article.html');
+describe('toFilePath', () => {
+  it('maps nested index files to .html files', () => {
+    expect(toFilePath('blog/index.html')).toBe('blog.html');
+    expect(toFilePath('blog/my-article/index.html')).toBe('blog/my-article.html');
   });
 
   it('keeps the root index.html of a build (start page, locale start page)', () => {
-    expect(toFlatPath('index.html')).toBe('index.html');
+    expect(toFilePath('index.html')).toBe('index.html');
   });
 
   it('leaves other files untouched', () => {
-    expect(toFlatPath('blog/feed.xml')).toBe('blog/feed.xml');
-    expect(toFlatPath('blog/my-index.html')).toBe('blog/my-index.html');
+    expect(toFilePath('blog/feed.xml')).toBe('blog/feed.xml');
+    expect(toFilePath('blog/my-index.html')).toBe('blog/my-index.html');
   });
 });
 
-describe('flattenOutput', () => {
+describe('toFileOutput', () => {
   const file = (content: string) => ({ content, appShellRoute: false });
 
   it('keeps parent and child routes side by side', () => {
     expect(
-      flattenOutput({
+      toFileOutput({
         'index.html': file('home'),
         'blog/index.html': file('blog'),
         'blog/a/index.html': file('a')
@@ -49,30 +49,30 @@ describe('flattenOutput', () => {
   });
 
   it('reports the route /index, which would overwrite the start page', () => {
-    const { errors } = flattenOutput({ 'index.html': file('home'), 'index/index.html': file('x') });
+    const { errors } = toFileOutput({ 'index.html': file('home'), 'index/index.html': file('x') });
 
     expect(errors).toEqual([expect.stringContaining("Route '/index' cannot be prerendered")]);
     expect(errors[0]).toContain("would be served as '/'");
   });
 
   it('reports nested routes ending in index', () => {
-    const { errors } = flattenOutput({ 'docs/index/index.html': file('x') });
+    const { errors } = toFileOutput({ 'docs/index/index.html': file('x') });
 
     expect(errors).toEqual([expect.stringContaining("Route '/docs/index' cannot be prerendered")]);
     expect(errors[0]).toContain("would be served as '/docs/'");
   });
 
   it('reports colliding routes', () => {
-    const { errors } = flattenOutput({ 'foo/index.html': file('1'), 'foo.html': file('2') });
+    const { errors } = toFileOutput({ 'foo/index.html': file('1'), 'foo.html': file('2') });
 
     expect(errors).toEqual([
-      "Routes '/foo' and '/foo.html' both map to the file 'foo.html' with 'prerenderOutputStyle: \"flat\"'."
+      "Routes '/foo' and '/foo.html' both map to the file 'foo.html' with 'prerenderFormat: \"file\"'."
     ]);
   });
 });
 
 describe('wrapPrerenderPages', () => {
-  it('flattens output, keeps the rest of the result and counts the call', async () => {
+  it('renames output, keeps the rest of the result and counts the call', async () => {
     const original: PrerenderPages = async (...args) => ({
       errors: [],
       warnings: ['w'],
@@ -106,14 +106,14 @@ describe('wrapPrerenderPages', () => {
   });
 });
 
-describe('installFlatPrerender', () => {
+describe('installFileFormat', () => {
   it('patches the module instance used by execute-post-bundle, once', () => {
     const prerender = require(path.join(angularBuildRoot, 'src/utils/server-rendering/prerender.js'));
     const original = prerender.prerenderPages;
 
-    installFlatPrerender(angularBuildRoot);
+    installFileFormat(angularBuildRoot);
     const patched = prerender.prerenderPages;
-    installFlatPrerender(angularBuildRoot);
+    installFileFormat(angularBuildRoot);
 
     expect(patched).not.toBe(original);
     expect(prerender.prerenderPages).toBe(patched);
@@ -129,6 +129,6 @@ describe('installFlatPrerender', () => {
   });
 
   it('rejects an unsupported @angular/build layout', () => {
-    expect(() => installFlatPrerender('/does/not/exist')).toThrow(/not supported/);
+    expect(() => installFileFormat('/does/not/exist')).toThrow(/not supported/);
   });
 });

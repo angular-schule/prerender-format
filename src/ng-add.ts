@@ -8,7 +8,7 @@ interface NgAddOptions {
   project: string;
 }
 
-export const BUILDER_NAME = '@angular-schule/flat-prerender:application';
+export const BUILDER_NAME = '@angular-schule/prerender-format:application';
 const ANGULAR_BUILDER_NAME = '@angular/build:application';
 
 export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: SchematicContext) => {
@@ -33,7 +33,7 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
 
   if (project.extensions.projectType !== 'application') {
     throw new SchematicsException(
-      `Flat prerender output requires an Angular project type of "application" in angular.json`
+      `@angular-schule/prerender-format requires an Angular project type of "application" in angular.json`
     );
   }
 
@@ -47,7 +47,7 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
   if (buildTarget.builder !== ANGULAR_BUILDER_NAME && buildTarget.builder !== BUILDER_NAME) {
     throw new SchematicsException(
       `The build target of "${options.project}" uses "${buildTarget.builder}". ` +
-        `@angular-schule/flat-prerender replaces "${ANGULAR_BUILDER_NAME}" only.`
+        `@angular-schule/prerender-format replaces "${ANGULAR_BUILDER_NAME}" only.`
     );
   }
 
@@ -64,18 +64,18 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
   if (configurationsWithServer.length) {
     throw new SchematicsException(
       `The build target of "${options.project}" ships an Angular SSR server (${configurationsWithServer.join(', ')}). ` +
-        `Flat prerender output requires "outputMode": "static", because the SSR server looks up prerendered pages as 'index.html'. ` +
+        `prerenderFormat "file" requires "outputMode": "static", because the SSR server looks up prerendered pages as 'index.html'. ` +
         `Set "outputMode": "static" and run ng add again.`
     );
   }
 
   buildTarget.builder = BUILDER_NAME;
-  buildTarget.options = { ...buildTarget.options, prerenderOutputStyle: 'flat' };
+  buildTarget.options = { ...buildTarget.options, prerenderFormat: 'file' };
 
   await workspaces.writeWorkspace(workspace, host);
 
   context.logger.info('');
-  context.logger.info('🚀 @angular-schule/flat-prerender is ready!');
+  context.logger.info('🚀 @angular-schule/prerender-format is ready!');
   context.logger.info('');
   context.logger.info('Next steps:');
   context.logger.info('  1. Make sure your host serves foo.html under /foo without a redirect.');

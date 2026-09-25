@@ -2,22 +2,22 @@ import { BuilderContext, BuilderOutput, createBuilder } from '@angular-devkit/ar
 import { ApplicationBuilderOptions, buildApplication } from '@angular/build';
 import * as path from 'path';
 
-import { getPrerenderCalls, installFlatPrerender } from './flat-output';
+import { getPrerenderCalls, installFileFormat } from './file-format';
 import { shipsServer } from './ships-server';
 
-export type PrerenderOutputStyle = 'directory' | 'flat';
+export type PrerenderFormat = 'directory' | 'file';
 
 export interface Schema extends ApplicationBuilderOptions {
   /**
    * File layout of prerendered routes.
    * - `directory` (default): `foo/index.html`
-   * - `flat`: `foo.html`, the start page stays `index.html`
+   * - `file`: `foo.html`, the start page stays `index.html`
    */
-  prerenderOutputStyle?: PrerenderOutputStyle;
+  prerenderFormat?: PrerenderFormat;
 }
 
 /**
- * Runs `@angular/build:application` and, with `prerenderOutputStyle: "flat"`,
+ * Runs `@angular/build:application` and, with `prerenderFormat: "file"`,
  * writes prerendered routes as `foo.html` instead of `foo/index.html`.
  * Exported separately for testing purposes.
  */
@@ -25,9 +25,9 @@ export async function* executeBuild(
   options: Schema,
   context: BuilderContext
 ): AsyncIterable<BuilderOutput> {
-  const { prerenderOutputStyle = 'directory', ...applicationOptions } = options;
+  const { prerenderFormat = 'directory', ...applicationOptions } = options;
 
-  if (prerenderOutputStyle !== 'flat') {
+  if (prerenderFormat !== 'file') {
     yield* buildApplication(applicationOptions, context);
 
     return;
@@ -35,7 +35,7 @@ export async function* executeBuild(
 
   if (shipsServer(applicationOptions)) {
     context.logger.error(
-      `❌ 'prerenderOutputStyle: "flat"' requires 'outputMode: "static"': ` +
+      `❌ 'prerenderFormat: "file"' requires 'outputMode: "static"': ` +
         `the Angular SSR server looks up prerendered pages as 'index.html'.`
     );
     yield { success: false };
@@ -44,7 +44,7 @@ export async function* executeBuild(
   }
 
   try {
-    installFlatPrerender(path.dirname(require.resolve('@angular/build/package.json')));
+    installFileFormat(path.dirname(require.resolve('@angular/build/package.json')));
   } catch (e) {
     context.logger.error('❌ ' + (e instanceof Error ? e.message : String(e)));
     yield { success: false };
@@ -59,7 +59,7 @@ export async function* executeBuild(
     const calls = getPrerenderCalls();
     if (result.success && calls === callsBefore) {
       context.logger.error(
-        `❌ 'prerenderOutputStyle: "flat"' had no effect: no pages were prerendered through @angular-schule/flat-prerender. ` +
+        `❌ 'prerenderFormat: "file"' had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
           `Check that prerendering is enabled ('outputMode: "static"' with server routes, or 'prerender'). ` +
           `If it is, this version of @angular/build is not supported.`
       );

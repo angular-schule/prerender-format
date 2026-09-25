@@ -3,10 +3,10 @@
 #
 # Usage: test-angular-app.sh <ng-new-command> <package-tgz> <angular-version-range>
 #   ng-new-command:        command that runs `ng new`, e.g. "npx @angular/cli@22"
-#   package-tgz:           packed @angular-schule/flat-prerender
+#   package-tgz:           packed @angular-schule/prerender-format
 #   angular-version-range: version range for all @angular/* packages, e.g. "^22.0.0" or "~22.0.0"
 #
-# Checks: ng add refuses outputMode "server", ng add + ng build write flat files
+# Checks: ng add refuses outputMode "server", ng add + ng build write foo.html files
 # (also for a second locale), and a route "index" fails with a clear message.
 set -euo pipefail
 
@@ -61,11 +61,11 @@ expect_failure() {
   echo "Failed as expected: $expected"
 }
 
-# ng new --ssr uses outputMode "server", which flat output refuses
-expect_failure "ships an Angular SSR server" $NG add @angular-schule/flat-prerender --skip-confirmation
+# ng new --ssr uses outputMode "server", which the "file" format refuses
+expect_failure "ships an Angular SSR server" $NG add @angular-schule/prerender-format --skip-confirmation
 
 set_build_option outputMode '"static"'
-$NG add @angular-schule/flat-prerender --skip-confirmation
+$NG add @angular-schule/prerender-format --skip-confirmation
 
 cat > src/app/app.routes.ts <<'EOF'
 import { Routes } from '@angular/router';
@@ -125,4 +125,4 @@ node -e '
 '
 expect_failure "Route '/index' cannot be prerendered" $NG build
 
-echo "Angular $RANGE: flat prerender output successful"
+echo "Angular $RANGE: prerender format 'file' successful"

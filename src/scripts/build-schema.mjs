@@ -1,4 +1,4 @@
-// Writes application/schema.json: the schema of @angular/build:application plus `prerenderOutputStyle`.
+// Writes application/schema.json: the schema of @angular/build:application plus `prerenderFormat`.
 // `node scripts/build-schema.mjs --check` fails if application/schema.json is not in sync with the installed @angular/build.
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -14,15 +14,15 @@ const schema = JSON.parse(
   readFileSync(join(dirname(packageJsonPath), 'src/builders/application/schema.json'), 'utf8'),
 );
 
-schema.$id = 'AngularSchuleFlatPrerenderApplicationSchema';
-schema.title = `Application builder with flat prerender output (based on @angular/build ${version})`;
-schema.properties.prerenderOutputStyle = {
+schema.$id = 'AngularSchulePrerenderFormatApplicationSchema';
+schema.title = `Application builder with prerenderFormat (based on @angular/build ${version})`;
+schema.properties.prerenderFormat = {
   type: 'string',
-  enum: ['directory', 'flat'],
+  enum: ['directory', 'file'],
   default: 'directory',
   description:
     "File layout of prerendered routes. 'directory' writes 'foo/index.html', which works on every web server. " +
-    "'flat' writes 'foo.html' (the start page stays 'index.html'). Only use 'flat' if your host serves 'foo.html' under '/foo' " +
+    "'file' writes 'foo.html' (the start page stays 'index.html'), like Astro's build.format. Only use 'file' if your host serves 'foo.html' under '/foo' " +
     "without a redirect, for example GitHub Pages or Cloudflare Pages. Requires 'outputMode: \"static\"'.",
 };
 

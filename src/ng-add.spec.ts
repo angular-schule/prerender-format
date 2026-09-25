@@ -34,7 +34,7 @@ function buildTarget(tree: Tree, project: string) {
 describe('ng-add', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('swaps the builder and enables flat output, keeping all other options', async () => {
+  it('swaps the builder and enables the "file" format, keeping all other options', async () => {
     const tree = Tree.empty();
     tree.create('angular.json', angularJson({ site: app() }));
 
@@ -42,7 +42,7 @@ describe('ng-add', () => {
 
     expect(buildTarget(tree, 'site')).toEqual({
       builder: BUILDER_NAME,
-      options: { outputMode: 'static', prerenderOutputStyle: 'flat' }
+      options: { outputMode: 'static', prerenderFormat: 'file' }
     });
   });
 

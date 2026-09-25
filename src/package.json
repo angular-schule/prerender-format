@@ -1,5 +1,5 @@
 {
-  "name": "@angular-schule/flat-prerender",
+  "name": "@angular-schule/prerender-format",
   "version": "0.1.0",
   "description": "Angular application builder that writes prerendered routes as foo.html instead of foo/index.html (no trailing slash redirects)",
   "main": "index.js",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/angular-schule/flat-prerender.git"
+    "url": "git+https://github.com/angular-schule/prerender-format.git"
   },
   "keywords": [
     "angular",
@@ -40,9 +40,9 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/angular-schule/flat-prerender/issues"
+    "url": "https://github.com/angular-schule/prerender-format/issues"
   },
-  "homepage": "https://github.com/angular-schule/flat-prerender/#readme",
+  "homepage": "https://github.com/angular-schule/prerender-format/#readme",
   "devDependencies": {
     "@angular/build": "^22.0.7",
     "@types/node": "^24.0.0",
