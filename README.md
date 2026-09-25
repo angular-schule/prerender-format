@@ -30,7 +30,7 @@ Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`
 So you have to choose:
 
 - **Nice looking URLs, but redirects:** links, canonical tags and sitemap have to use `/blog/my-article`. Every direct visit (search engine, bookmark, shared link) starts with a 301/308 redirect to `/blog/my-article/`, and the Angular router then removes the trailing slash again.
-- **No redirects, but trailing slashes everywhere:** links, canonical tags and sitemap have to use `/blog/my-article/`. Pages answer with 200, but every URL ends with a slash, and the Angular router needs extra configuration to keep it.
+- **No redirects, but trailing slashes everywhere:** links, canonical tags and sitemap have to use `/blog/my-article/`. Pages answer with 200, but every URL ends with a slash, and Angular needs an extra provider to keep it in the address bar: `{ provide: LocationStrategy, useClass: TrailingSlashPathLocationStrategy }` (from `@angular/common`).
 
 ### With this builder: both
 
