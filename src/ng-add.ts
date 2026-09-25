@@ -1,6 +1,7 @@
 import { workspaces } from '@angular-devkit/core';
 import { SchematicContext, SchematicsException, Tree } from '@angular-devkit/schematics';
 
+import { shipsServer } from './application/ships-server';
 import { createHost } from './utils';
 
 interface NgAddOptions {
@@ -50,22 +51,32 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
     );
   }
 
+  const configurationsWithServer = [
+    ['options', buildTarget.options ?? {}] as const,
+    ...Object.entries(buildTarget.configurations ?? {}).map(
+      ([name, configuration]) =>
+        [`configuration "${name}"`, { ...buildTarget.options, ...configuration }] as const
+    )
+  ]
+    .filter(([, options]) => shipsServer(options))
+    .map(([name]) => name);
+
+  if (configurationsWithServer.length) {
+    throw new SchematicsException(
+      `The build target of "${options.project}" ships an Angular SSR server (${configurationsWithServer.join(', ')}). ` +
+        `Flat prerender output requires "outputMode": "static", because the SSR server looks up prerendered pages as 'index.html'. ` +
+        `Set "outputMode": "static" and run ng add again.`
+    );
+  }
+
   buildTarget.builder = BUILDER_NAME;
   buildTarget.options = { ...buildTarget.options, prerenderOutputStyle: 'flat' };
 
   await workspaces.writeWorkspace(workspace, host);
 
-  const outputMode = buildTarget.options.outputMode;
-
   context.logger.info('');
   context.logger.info('🚀 @angular-schule/flat-prerender is ready!');
   context.logger.info('');
-  if (outputMode !== 'static') {
-    context.logger.warn(
-      `⚠️  Flat prerender output requires "outputMode": "static" in the build options (currently: ${JSON.stringify(outputMode)}).`
-    );
-    context.logger.info('');
-  }
   context.logger.info('Next steps:');
   context.logger.info('  1. Make sure your host serves foo.html under /foo without a redirect.');
   context.logger.info('  2. Build via: ng build');

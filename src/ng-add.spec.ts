@@ -44,7 +44,6 @@ describe('ng-add', () => {
       builder: BUILDER_NAME,
       options: { outputMode: 'static', prerenderOutputStyle: 'flat' }
     });
-    expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
   it('selects the only project automatically', async () => {
@@ -66,13 +65,48 @@ describe('ng-add', () => {
     expect(buildTarget(tree, 'site').builder).toBe(BUILDER_NAME);
   });
 
-  it('warns if outputMode is not static', async () => {
+  it('refuses a build that ships a server (outputMode server)', async () => {
     const tree = Tree.empty();
     tree.create('angular.json', angularJson({ site: app(undefined, { outputMode: 'server' }) }));
 
-    await ngAdd({ project: 'site' })(tree, mockContext);
+    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(
+      /ships an Angular SSR server \(options\)/
+    );
+  });
 
-    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('"outputMode": "static"'));
+  it('refuses legacy SSR without outputMode', async () => {
+    const tree = Tree.empty();
+    tree.create('angular.json', angularJson({ site: app(undefined, { ssr: true, server: 'src/main.server.ts' }) }));
+
+    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(/ships an Angular SSR server/);
+  });
+
+  it('refuses a configuration that switches to outputMode server', async () => {
+    const tree = Tree.empty();
+    const site = app();
+    Object.assign(site.architect.build, { configurations: { production: { outputMode: 'server' } } });
+    tree.create('angular.json', angularJson({ site }));
+
+    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(
+      /configuration "production"/
+    );
+  });
+
+  it('accepts a static build with an SSR entry and legacy prerendering without server', async () => {
+    const tree = Tree.empty();
+    tree.create(
+      'angular.json',
+      angularJson({
+        a: app(undefined, { outputMode: 'static', ssr: { entry: 'src/server.ts' } }),
+        b: app(undefined, { prerender: true })
+      })
+    );
+
+    await ngAdd({ project: 'a' })(tree, mockContext);
+    await ngAdd({ project: 'b' })(tree, mockContext);
+
+    expect(buildTarget(tree, 'a').builder).toBe(BUILDER_NAME);
+    expect(buildTarget(tree, 'b').builder).toBe(BUILDER_NAME);
   });
 
   it('requires a project name if there are several projects', async () => {

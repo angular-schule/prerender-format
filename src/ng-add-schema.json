@@ -6,7 +6,10 @@
   "properties": {
     "project": {
       "type": "string",
-      "description": "The project whose build target should use flat prerender output"
+      "description": "The project whose build target should use flat prerender output",
+      "$default": {
+        "$source": "projectName"
+      }
     }
   },
   "required": [],

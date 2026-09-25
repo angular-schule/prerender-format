@@ -10,14 +10,28 @@ export type PrerenderOutput = Record<string, PrerenderedFile>;
 
 export interface PrerenderResult {
   output: PrerenderOutput;
+  errors?: string[];
   [key: string]: unknown;
 }
 
 export type PrerenderPages = (...args: unknown[]) => Promise<PrerenderResult>;
 
-const INDEX_SUFFIX = '/index.html';
+export interface FlattenResult {
+  output: PrerenderOutput;
+  errors: string[];
+}
+
+const INDEX_FILE = 'index.html';
+const INDEX_SUFFIX = '/' + INDEX_FILE;
 const PATCHED = Symbol.for('@angular-schule/flat-prerender:patched');
 const PRERENDER_MODULE = 'src/utils/server-rendering/prerender.js';
+
+let prerenderCalls = 0;
+
+/** Number of `prerenderPages()` calls that went through the wrapper in this process. */
+export function getPrerenderCalls(): number {
+  return prerenderCalls;
+}
 
 /**
  * Maps a prerender output path from `foo/index.html` to `foo.html`.
@@ -31,34 +45,76 @@ export function toFlatPath(outPath: string): string {
   return outPath.slice(0, -INDEX_SUFFIX.length) + '.html';
 }
 
-/** Renames all keys of a prerender `output` record, failing on collisions. */
-export function flattenOutput(output: PrerenderOutput): PrerenderOutput {
+/** Route of an output path, for error messages: `blog/index/index.html` → `/blog/index`. */
+function routeOf(outPath: string): string {
+  if (outPath === INDEX_FILE) {
+    return '/';
+  }
+
+  return '/' + (outPath.endsWith(INDEX_SUFFIX) ? outPath.slice(0, -INDEX_SUFFIX.length) : outPath);
+}
+
+/**
+ * Renames all keys of a prerender `output` record.
+ * Routes whose last segment is `index` are reported as errors: as `…/index.html` they would be
+ * served under the parent path, and `/index` would overwrite the start page.
+ */
+export function flattenOutput(output: PrerenderOutput): FlattenResult {
   const flat: PrerenderOutput = {};
+  const errors: string[] = [];
+  const routeByFlatPath = new Map<string, string>();
+
   for (const [outPath, file] of Object.entries(output)) {
+    const route = routeOf(outPath);
     const flatPath = toFlatPath(outPath);
-    if (Object.hasOwn(flat, flatPath)) {
-      throw new Error(
-        `Flat prerender output: '${outPath}' and another route both map to '${flatPath}'.`
+
+    if (outPath.endsWith('/index' + INDEX_SUFFIX) || outPath === 'index' + INDEX_SUFFIX) {
+      errors.push(
+        `Route '${route}' cannot be prerendered with 'prerenderOutputStyle: "flat"': ` +
+          `its file '${flatPath}' would be served as '${route.slice(0, -'index'.length)}', not as '${route}'. ` +
+          `Rename the route or use 'prerenderOutputStyle: "directory"'.`
       );
+      continue;
     }
+
+    const existingRoute = routeByFlatPath.get(flatPath);
+    if (existingRoute !== undefined) {
+      errors.push(
+        `Routes '${existingRoute}' and '${route}' both map to the file '${flatPath}' with 'prerenderOutputStyle: "flat"'.`
+      );
+      continue;
+    }
+
+    routeByFlatPath.set(flatPath, route);
     flat[flatPath] = file;
   }
 
-  return flat;
+  return { output: flat, errors };
 }
 
-/** Wraps `prerenderPages` so that its `output` record uses flat file names. */
+/**
+ * Wraps `prerenderPages` so that its `output` record uses flat file names.
+ * Problems are returned as build errors of `prerenderPages`, so Angular reports them like any other build error.
+ */
 export function wrapPrerenderPages(prerenderPages: PrerenderPages): PrerenderPages {
   const wrapped = async function (this: unknown, ...args: unknown[]) {
     const result = await prerenderPages.apply(this, args);
-    if (!result || typeof result.output !== 'object' || result.output === null) {
+    if (
+      !result ||
+      typeof result.output !== 'object' ||
+      result.output === null ||
+      !Array.isArray(result.errors)
+    ) {
       throw new Error(
-        'Flat prerender output: prerenderPages() returned no output record. ' +
+        'Flat prerender output: prerenderPages() returned an unknown result. ' +
           'This version of @angular/build is not supported.'
       );
     }
+    prerenderCalls++;
 
-    return { ...result, output: flattenOutput(result.output) };
+    const { output, errors } = flattenOutput(result.output);
+
+    return { ...result, output, errors: [...result.errors, ...errors] };
   };
   Object.defineProperty(wrapped, PATCHED, { value: true });
 

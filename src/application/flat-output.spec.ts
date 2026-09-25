@@ -3,6 +3,7 @@ import * as path from 'path';
 
 import {
   flattenOutput,
+  getPrerenderCalls,
   installFlatPrerender,
   PrerenderPages,
   toFlatPath,
@@ -38,36 +39,68 @@ describe('flattenOutput', () => {
         'blog/a/index.html': file('a')
       })
     ).toEqual({
-      'index.html': file('home'),
-      'blog.html': file('blog'),
-      'blog/a.html': file('a')
+      output: {
+        'index.html': file('home'),
+        'blog.html': file('blog'),
+        'blog/a.html': file('a')
+      },
+      errors: []
     });
   });
 
-  it('fails on colliding routes', () => {
-    expect(() => flattenOutput({ 'foo/index.html': file('1'), 'foo.html': file('2') })).toThrow(
-      /both map to 'foo.html'/
-    );
+  it('reports the route /index, which would overwrite the start page', () => {
+    const { errors } = flattenOutput({ 'index.html': file('home'), 'index/index.html': file('x') });
+
+    expect(errors).toEqual([expect.stringContaining("Route '/index' cannot be prerendered")]);
+    expect(errors[0]).toContain("would be served as '/'");
+  });
+
+  it('reports nested routes ending in index', () => {
+    const { errors } = flattenOutput({ 'docs/index/index.html': file('x') });
+
+    expect(errors).toEqual([expect.stringContaining("Route '/docs/index' cannot be prerendered")]);
+    expect(errors[0]).toContain("would be served as '/docs/'");
+  });
+
+  it('reports colliding routes', () => {
+    const { errors } = flattenOutput({ 'foo/index.html': file('1'), 'foo.html': file('2') });
+
+    expect(errors).toEqual([
+      "Routes '/foo' and '/foo.html' both map to the file 'foo.html' with 'prerenderOutputStyle: \"flat\"'."
+    ]);
   });
 });
 
 describe('wrapPrerenderPages', () => {
-  it('flattens output and keeps the rest of the result', async () => {
+  it('flattens output, keeps the rest of the result and counts the call', async () => {
     const original: PrerenderPages = async (...args) => ({
       errors: [],
       warnings: ['w'],
       output: { [`${args[0]}/index.html`]: { content: 'x', appShellRoute: false } }
     });
+    const callsBefore = getPrerenderCalls();
 
     expect(await wrapPrerenderPages(original)('about')).toEqual({
       errors: [],
       warnings: ['w'],
       output: { 'about.html': { content: 'x', appShellRoute: false } }
     });
+    expect(getPrerenderCalls()).toBe(callsBefore + 1);
+  });
+
+  it('appends its errors to the build errors', async () => {
+    const original: PrerenderPages = async () => ({
+      errors: ['existing'],
+      output: { 'index/index.html': { content: 'x', appShellRoute: false } }
+    });
+
+    const result = await wrapPrerenderPages(original)();
+
+    expect(result.errors).toEqual(['existing', expect.stringContaining("Route '/index'")]);
   });
 
   it('fails loudly on an unknown result shape', async () => {
-    const original = (async () => ({})) as unknown as PrerenderPages;
+    const original = (async () => ({ output: {} })) as unknown as PrerenderPages;
 
     await expect(wrapPrerenderPages(original)()).rejects.toThrow(/not supported/);
   });

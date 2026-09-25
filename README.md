@@ -13,10 +13,11 @@
 3. [🚀 Quick Start](#quickstart)
 4. [⚙️ Installation](#installation)
 5. [📦 Options](#options)
-6. [🌍 Hosts](#hosts)
-7. [🔧 How it works](#how-it-works)
-8. [📁 Known limitations](#limitations)
-9. [🏁 License](#license)
+6. [🔭 Other frameworks](#other-frameworks)
+7. [🌍 Hosts](#hosts)
+8. [🔧 How it works](#how-it-works)
+9. [📁 Known limitations](#limitations)
+10. [🏁 License](#license)
 
 <hr>
 
@@ -30,7 +31,7 @@ With this builder, the same route becomes `blog/my-article.html`.
 Hosts like Cloudflare Pages serve that file under `/blog/my-article` directly, with status 200.
 
 This is the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173).
-As long as Angular has no built-in option, this builder provides it.
+The builder is a stopgap: developed and tested for Angular 22, until Angular has a built-in option and this package is no longer needed.
 
 ## ⚠️ Prerequisites <a name="prerequisites"></a>
 
@@ -47,7 +48,8 @@ ng build
 
 ## ⚙️ Installation <a name="installation"></a>
 
-`ng add @angular-schule/flat-prerender` installs the package and changes the build target in your `angular.json`:
+`ng add @angular-schule/flat-prerender` installs the package and changes the builder of your build target in `angular.json` and sets `prerenderOutputStyle`.
+Your build must already use `"outputMode": "static"`: if the build target (or one of its configurations) ships an SSR server, `ng add` stops and tells you so.
 
 ```json
 "build": {
@@ -77,6 +79,23 @@ Use `--project` to choose the project in a workspace with several projects.
 Parent and child routes live side by side: `blog.html` next to the folder `blog/`.
 The start page of each locale (for example with base href `/en/`) stays `index.html`.
 
+A route whose last segment is `index` (`/index`, `/docs/index`) fails the build with a clear message: as `index.html` it would be served under the parent path, and `/index` would overwrite the start page.
+
+## 🔭 Other frameworks <a name="other-frameworks"></a>
+
+Static site generators have offered this choice for a long time. Astro is the closest match:
+
+| Framework | Option | `about/index.html` | `about.html` |
+|---|---|---|---|
+| **Astro** | `build.format` | `'directory'` (default) | `'file'` |
+| Next.js (static export) | `trailingSlash` | `true` | `false` (default) |
+| SvelteKit | `trailingSlash` | `'always'` | `'never'` (default) |
+| Nuxt 2 | `generate.subFolders` | `true` (default) | `false` |
+| Hugo | `uglyURLs` | `false` (default) | `true` |
+| **Angular** | – | always | this builder |
+
+Astro's documentation recommends `build.format: 'file'` together with `trailingSlash: 'never'`, which is exactly the combination this builder enables for Angular.
+
 ## 🌍 Hosts <a name="hosts"></a>
 
 Measured on **Cloudflare Pages** with a flat build:
@@ -90,7 +109,7 @@ Measured on **Cloudflare Pages** with a flat build:
 
 Old addresses with a trailing slash keep working, they redirect to the address without it.
 
-Other hosts (GitHub Pages, Firebase Hosting, Vercel, Netlify) are listed in the Angular issue as supporting this, some of them behind a setting.
+GitHub Pages, Firebase Hosting, Vercel and Netlify are listed in the Angular issue as supporting this, some of them behind a setting.
 Check your host before switching.
 
 ## 🔧 How it works <a name="how-it-works"></a>
@@ -98,8 +117,8 @@ Check your host before switching.
 The builder calls `buildApplication` from `@angular/build` and wraps its internal `prerenderPages()` function, which returns the prerendered pages as a record of output paths.
 The wrapper renames `foo/index.html` to `foo.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
 
-`prerenderPages()` is internal API.
-If a version of `@angular/build` changes it, the build fails with a clear error instead of silently writing `index.html` files.
+`prerenderPages()` is internal API, so this package supports Angular 22 only.
+After a successful build, the builder checks that the prerendered pages actually went through the wrapper, and fails otherwise.
 
 ## 📁 Known limitations <a name="limitations"></a>
 
