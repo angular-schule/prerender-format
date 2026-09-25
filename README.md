@@ -30,14 +30,14 @@ Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`
 So you have to choose:
 
 - **Nice looking URLs, but redirects:** links have to use `/blog/my-article`. Every direct visit (search engine, bookmark, shared link) starts with a 301/308 redirect to `/blog/my-article/`, and the Angular router then removes the trailing slash again.
-- **No redirects, but trailing slashes everywhere:** links have to use `/blog/my-article/`. Pages answer with 200, but every URL ends with a slash, and Angular needs an extra provider to keep it in the address bar: `{ provide: LocationStrategy, useClass: TrailingSlashPathLocationStrategy }` (see [`TrailingSlashPathLocationStrategy`](https://angular.dev/api/common/TrailingSlashPathLocationStrategy)).
+- **No redirects, but trailing slashes everywhere:** links have to use `/blog/my-article/`. Pages answer with a status code 200, but every URL ends with a slash, and Angular needs an extra provider to keep it in the address bar: `{ provide: LocationStrategy, useClass: TrailingSlashPathLocationStrategy }` (see [`TrailingSlashPathLocationStrategy`](https://angular.dev/api/common/TrailingSlashPathLocationStrategy)).
 
 ### With this builder: nice URLs and good SEO, we deserve both!
 
-The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages serve it under `/blog/my-article` directly, with status 200.
+The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages serve it under `/blog/my-article` directly, with a status code 200.
 
 - **Nice looking URLs:** `/blog/my-article`, without a trailing slash, in links, in the address bar and in the server response alike.
-- **Flawless SEO:** every page answers directly with 200. Search engines see no redirect, and the URL they crawl is the same one your links point to.
+- **Flawless SEO:** every page answers directly with a status code 200. Search engines see no redirect, and the URL they crawl is the same one your links point to.
 - **Old links keep working:** addresses with a trailing slash redirect to the address without it (measured on Cloudflare Pages, see [Hosts](#hosts)).
 
 The idea comes from [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173), which asks for an option to write `<route>.html` instead of `<route>/index.html`.
