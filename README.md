@@ -40,8 +40,8 @@ The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages s
 - **Flawless SEO:** every page answers directly with 200. Search engines see no redirect, and the URL they crawl is the same one your links point to.
 - **Old links keep working:** addresses with a trailing slash redirect to the address without it (measured on Cloudflare Pages, see [Hosts](#hosts)).
 
-This is the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173).
-The pull request [angular/angular-cli#34180](https://github.com/angular/angular-cli/pull/34180) adds it to Angular itself, with the same name and values.
+The idea comes from [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173), which asks for an option to write `<route>.html` instead of `<route>/index.html`.
+The pull request [angular/angular-cli#34180](https://github.com/angular/angular-cli/pull/34180) adds such an option to Angular itself, with the same name and values as this builder: `prerenderFormat`, `'directory'` or `'file'`.
 The builder is a stopgap: developed and tested for Angular 22, until Angular has a built-in option and this package is no longer needed.
 If you want the option in Angular, please give the issue and the pull request a 👍.
 

@@ -4,7 +4,7 @@ This file provides guidance when working with code in this repository.
 
 ## Overview
 
-`@angular-schule/prerender-format` is an Angular CLI builder that wraps `@angular/build:application`. With `prerenderFormat: "file"`, prerendered routes are written as `foo.html` instead of `foo/index.html`, so static hosts serve `/foo` without a trailing slash redirect. It implements the option proposed in [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173). Structure and conventions follow [angular-cli-ghpages](https://github.com/angular-schule/angular-cli-ghpages).
+`@angular-schule/prerender-format` is an Angular CLI builder that wraps `@angular/build:application`. With `prerenderFormat: "file"`, prerendered routes are written as `foo.html` instead of `foo/index.html`, so static hosts serve `/foo` without a trailing slash redirect. It implements the idea from [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173); the pull request [angular/angular-cli#34180](https://github.com/angular/angular-cli/pull/34180) adds the same option to Angular itself. Structure and conventions follow [angular-cli-ghpages](https://github.com/angular-schule/angular-cli-ghpages).
 
 ## Development Commands
 
