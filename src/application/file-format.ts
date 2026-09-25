@@ -68,7 +68,9 @@ export function toFileOutput(output: PrerenderOutput): FileOutputResult {
     const route = routeOf(outPath);
     const filePath = toFilePath(outPath);
 
-    if (outPath.endsWith('/index' + INDEX_SUFFIX) || outPath === 'index' + INDEX_SUFFIX) {
+    // Case-insensitive: on macOS and Windows, 'Index.html' is the same file as 'index.html'.
+    const lowerOutPath = outPath.toLowerCase();
+    if (lowerOutPath.endsWith('/index' + INDEX_SUFFIX) || lowerOutPath === 'index' + INDEX_SUFFIX) {
       errors.push(
         `Route '${route}' cannot be prerendered with 'prerenderFormat: "file"': ` +
           `its file '${filePath}' would be served as '${route.slice(0, -'index'.length)}', not as '${route}'. ` +

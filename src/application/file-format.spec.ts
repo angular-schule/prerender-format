@@ -55,6 +55,12 @@ describe('toFileOutput', () => {
     expect(errors[0]).toContain("would be served as '/'");
   });
 
+  it('reports routes named index regardless of case', () => {
+    const { errors } = toFileOutput({ 'index.html': file('home'), 'Index/index.html': file('x') });
+
+    expect(errors).toEqual([expect.stringContaining("Route '/Index' cannot be prerendered")]);
+  });
+
   it('reports nested routes ending in index', () => {
     const { errors } = toFileOutput({ 'docs/index/index.html': file('x') });
 

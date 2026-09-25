@@ -64,8 +64,8 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
   if (configurationsWithServer.length) {
     throw new SchematicsException(
       `The build target of "${options.project}" ships an Angular SSR server (${configurationsWithServer.join(', ')}). ` +
-        `prerenderFormat "file" requires "outputMode": "static", because the SSR server looks up prerendered pages as 'index.html'. ` +
-        `Set "outputMode": "static" and run ng add again.`
+        `prerenderFormat "file" is not supported when the build produces a server, because the SSR server looks up prerendered pages as 'index.html'. ` +
+        `Use a static build ("outputMode": "static", or prerendering without "ssr") and run ng add again.`
     );
   }
 

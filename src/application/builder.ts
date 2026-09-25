@@ -35,8 +35,8 @@ export async function* executeBuild(
 
   if (shipsServer(applicationOptions)) {
     context.logger.error(
-      `❌ 'prerenderFormat: "file"' requires 'outputMode: "static"': ` +
-        `the Angular SSR server looks up prerendered pages as 'index.html'.`
+      `❌ 'prerenderFormat: "file"' is not supported when the build produces a server ` +
+        `('outputMode: "server"', or 'ssr' without 'outputMode'): the Angular SSR server looks up prerendered pages as 'index.html'.`
     );
     yield { success: false };
 
