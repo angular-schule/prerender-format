@@ -23,7 +23,7 @@
 
 ## 💡 Why? <a name="why"></a>
 
-### Today: you can't have both
+### Today: nice URLs or good SEO, you can't have both
 
 Angular's prerendering (SSG) writes every route into its own folder: the route `blog/my-article` becomes `blog/my-article/index.html`.
 Static hosts see a folder and redirect `/blog/my-article` to `/blog/my-article/`.
@@ -32,7 +32,7 @@ So you have to choose:
 - **Nice looking URLs, but redirects:** links, canonical tags and sitemap have to use `/blog/my-article`. Every direct visit (search engine, bookmark, shared link) starts with a 301/308 redirect to `/blog/my-article/`, and the Angular router then removes the trailing slash again.
 - **No redirects, but trailing slashes everywhere:** links, canonical tags and sitemap have to use `/blog/my-article/`. Pages answer with 200, but every URL ends with a slash, and Angular needs an extra provider to keep it in the address bar: `{ provide: LocationStrategy, useClass: TrailingSlashPathLocationStrategy }` (see [`TrailingSlashPathLocationStrategy`](https://angular.dev/api/common/TrailingSlashPathLocationStrategy)).
 
-### With this builder: both
+### With this builder: nice URLs and good SEO, we deserve both!
 
 The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages serve it under `/blog/my-article` directly, with status 200.
 
