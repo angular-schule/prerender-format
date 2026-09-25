@@ -104,7 +104,7 @@ Static site generators have offered this choice for a long time. We decided to b
 | SvelteKit | `trailingSlash` | `'always'` | `'never'` (default) |
 | Nuxt 2 | `generate.subFolders` | `true` (default) | `false` |
 | Hugo | `uglyURLs` | `false` (default) | `true` |
-| **Angular** | NEW: `prerenderFormat` | `'directory'` (default) | `'file'` |
+| **Angular** | **NEW: `prerenderFormat`** | **`'directory'` (default)** | **`'file'`** |
 
 Astro's documentation recommends `build.format: 'file'` together with `trailingSlash: 'never'`, which is exactly the combination this builder enables for Angular.
 
