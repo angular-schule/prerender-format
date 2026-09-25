@@ -4,7 +4,7 @@
 [![GitHub Actions](https://github.com/angular-schule/prerender-format/actions/workflows/main.yml/badge.svg)](https://github.com/angular-schule/prerender-format/actions/workflows/main.yml)
 [![The MIT License](https://img.shields.io/badge/license-MIT-orange.svg?color=blue&style=flat-square)](http://opensource.org/licenses/MIT)
 
-**Nice looking URLs and flawless SEO for your prerendered Angular app: `about.html` instead of `about/index.html`, no more trailing slash redirects! 🚀**
+**Nice looking URLs and flawless SEO for your prerendered Angular app: `blog/my-article.html` instead of `blog/my-article/index.html`, no more trailing slash redirects! 🚀**
 
 **Table of contents:**
 
