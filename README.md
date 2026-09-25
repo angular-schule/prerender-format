@@ -51,7 +51,7 @@ If you want the option in Angular, please give the issue and the pull request a 
 
 - Angular 22 with the application builder (`@angular/build:application`)
 - `"outputMode": "static"`
-- A host that serves `foo.html` under `/foo` without a redirect (see [Hosts](#hosts))
+- A host that serves `blog/my-article.html` under `/blog/my-article` without a redirect (see [Hosts](#hosts))
 
 ## 🚀 Quick Start <a name="quickstart"></a>
 
@@ -101,7 +101,7 @@ A route whose last segment is `index` (`/index`, `/docs/index`) fails the build 
 
 Static site generators have offered this choice for a long time. We decided to borrow the terminology from Astro: `build.format` with `'directory'` and `'file'` became `prerenderFormat` with the same values.
 
-| Framework | Option | `about/index.html` | `about.html` |
+| Framework | Option | `blog/my-article/index.html` | `blog/my-article.html` |
 |---|---|---|---|
 | **Astro** | `build.format` | `'directory'` (default) | `'file'` |
 | Next.js (static export) | `trailingSlash` | `true` | `false` (default) |
@@ -118,10 +118,10 @@ Measured on **Cloudflare Pages** with `prerenderFormat: "file"`:
 
 | Request | Response |
 |---|---|
-| `/foo` | 200, `foo.html` |
-| `/foo/` | 308 → `/foo` |
-| `/foo.html` | 308 → `/foo` |
-| `/foo` with `foo.html` next to the folder `foo/` | 200, `foo.html` |
+| `/blog/my-article` | 200, `blog/my-article.html` |
+| `/blog/my-article/` | 308 → `/blog/my-article` |
+| `/blog/my-article.html` | 308 → `/blog/my-article` |
+| `/blog` with `blog.html` next to the folder `blog/` | 200, `blog.html` |
 
 Old addresses with a trailing slash keep working, they redirect to the address without it.
 
@@ -131,14 +131,14 @@ Check your host before switching.
 ## 🔧 How it works <a name="how-it-works"></a>
 
 The builder calls `buildApplication` from `@angular/build` and wraps its internal `prerenderPages()` function, which returns the prerendered pages as a record of output paths.
-The wrapper renames `foo/index.html` to `foo.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
+The wrapper renames `blog/my-article/index.html` to `blog/my-article.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
 
 `prerenderPages()` is internal API, so this package supports Angular 22 only.
 After a successful build, the builder checks that the prerendered pages actually went through the wrapper, and fails otherwise.
 
 ## 📁 Known limitations <a name="limitations"></a>
 
-- **Static builds only, by design.** `prerenderFormat: "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the build fails: a server needs no `.html` files, it answers `/foo` directly without redirecting to `/foo/`, and the Angular SSR server looks up prerendered pages as `index.html`.
+- **Static builds only, by design.** `prerenderFormat: "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the build fails: a server needs no `.html` files, it answers `/blog/my-article` directly without redirecting to `/blog/my-article/`, and the Angular SSR server looks up prerendered pages as `index.html`.
 
   ✅ Works: static output, the `ssr` entry only renders at build time
 
