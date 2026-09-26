@@ -6,8 +6,8 @@
 #   package-tgz:           packed @angular-schule/prerender-format
 #   angular-version-range: version range for all @angular/* packages, e.g. "^22.0.0" or "~22.0.0"
 #
-# Checks: ng add refuses outputMode "server", ng add + ng build write foo.html files
-# (also for a second locale), and a route "index" fails with a clear message.
+# Checks: ng add and ng build warn for outputMode "server", ng add + ng build write <route>.html files
+# (also for a second locale), and a route "index" stays index/index.html with a warning.
 set -euo pipefail
 
 NG_NEW="$1"
@@ -45,12 +45,12 @@ set_build_option() {
   ' "$1" "$2"
 }
 
-expect_failure() {
+expect_output() {
   local expected="$1"
   shift
-  if "$@" > output.log 2>&1; then
+  if ! "$@" > output.log 2>&1; then
     cat output.log
-    echo "Expected '$*' to fail"
+    echo "Expected '$*' to succeed"
     exit 1
   fi
   if ! grep -q "$expected" output.log; then
@@ -58,11 +58,12 @@ expect_failure() {
     echo "Expected output to contain: $expected"
     exit 1
   fi
-  echo "Failed as expected: $expected"
+  echo "Succeeded with expected output: $expected"
 }
 
-# ng new --ssr uses outputMode "server", which the "file" format refuses
-expect_failure "ships an Angular SSR server" $NG add @angular-schule/prerender-format --skip-confirmation
+# ng new --ssr uses outputMode "server", where the "file" format is not considered
+expect_output "produces a server" $NG add @angular-schule/prerender-format --skip-confirmation
+expect_output "is not considered when the build produces a server" $NG build
 
 set_build_option outputMode '"static"'
 $NG add @angular-schule/prerender-format --skip-confirmation
@@ -117,12 +118,14 @@ for locale in en-US de; do
   test ! -e "dist/$APP/browser/$locale/about/index.html" || { echo "Unexpected $locale/about/index.html"; exit 1; }
 done
 
-# A route "index" would overwrite the start page
+# A route "index" would overwrite the start page: it stays index/index.html, with a warning
 node -e '
   const fs = require("fs");
   const file = "src/app/app.routes.ts";
   fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace("];", ",\n  { path: \"index\", component: App }\n];"));
 '
-expect_failure "Route '/index' cannot be prerendered" $NG build
+expect_output "Route '/index' is written to 'index/index.html' instead" $NG build
+test -f "dist/$APP/browser/en-US/index/index.html" || { echo "Missing en-US/index/index.html"; exit 1; }
+test -f "dist/$APP/browser/en-US/index.html" || { echo "Missing en-US/index.html"; exit 1; }
 
 echo "Angular $RANGE: prerender format 'file' successful"

@@ -2,7 +2,7 @@ import { BuilderContext, BuilderOutput, createBuilder } from '@angular-devkit/ar
 import { ApplicationBuilderOptions, buildApplication } from '@angular/build';
 import * as path from 'path';
 
-import { getPrerenderCalls, installFileFormat } from './file-format';
+import { getPrerenderCalls, installFileFormat, setReservedFiles } from './file-format';
 import { shipsServer } from './ships-server';
 
 export type PrerenderFormat = 'directory' | 'file';
@@ -16,10 +16,22 @@ export interface Schema extends ApplicationBuilderOptions {
   prerenderFormat?: PrerenderFormat;
 }
 
+/** Top-level file names of the build that a prerendered route must not take over. */
+function reservedFiles(options: ApplicationBuilderOptions): string[] {
+  const files = ['index.csr.html', 'index.server.html'];
+  const index = options.index as unknown;
+  if (index && typeof index === 'object' && typeof (index as { output?: unknown }).output === 'string') {
+    files.push(path.posix.basename((index as { output: string }).output));
+  }
+
+  return files;
+}
+
 /**
  * Runs `@angular/build:application` and, with `prerenderFormat: "file"`,
  * writes prerendered routes as `foo.html` instead of `foo/index.html`.
- * Exported separately for testing purposes.
+ * Whenever the "file" format does not apply, the build behaves like `@angular/build:application`
+ * and logs a warning. Exported separately for testing purposes.
  */
 export async function* executeBuild(
   options: Schema,
@@ -34,39 +46,37 @@ export async function* executeBuild(
   }
 
   if (shipsServer(applicationOptions)) {
-    context.logger.error(
-      `❌ 'prerenderFormat: "file"' is not supported when the build produces a server ` +
-        `('outputMode: "server"', or 'ssr' without 'outputMode'): the Angular SSR server looks up prerendered pages as 'index.html'.`
+    context.logger.warn(
+      `The "prerenderFormat" option set to "file" is not considered when the build produces a server ` +
+        `("outputMode" set to "server", or "ssr" without "outputMode"). Prerendered routes are written to '<route>/index.html'.`
     );
-    yield { success: false };
+    yield* buildApplication(applicationOptions, context);
 
     return;
   }
 
-  try {
-    installFileFormat(path.dirname(require.resolve('@angular/build/package.json')));
-  } catch (e) {
-    context.logger.error('❌ ' + (e instanceof Error ? e.message : String(e)));
-    yield { success: false };
+  const install = installFileFormat(path.dirname(require.resolve('@angular/build/package.json')));
+  if (!install.installed) {
+    context.logger.warn(`The "prerenderFormat" option set to "file" is not considered: ${install.reason}`);
+    yield* buildApplication(applicationOptions, context);
 
     return;
   }
+  setReservedFiles(reservedFiles(applicationOptions));
 
-  // Every successful build must have passed its prerendered pages through the wrapper.
-  // Otherwise nothing was prerendered, or @angular/build no longer calls the wrapped function.
+  // A successful build whose pages did not pass through the wrapper kept the directory layout:
+  // nothing was prerendered, or this version of @angular/build no longer calls the wrapped function.
   let callsBefore = getPrerenderCalls();
   for await (const result of buildApplication(applicationOptions, context)) {
     const calls = getPrerenderCalls();
     if (result.success && calls === callsBefore) {
-      context.logger.error(
-        `❌ 'prerenderFormat: "file"' had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
-          `Check that prerendering is enabled ('outputMode: "static"' with server routes, or 'prerender'). ` +
+      context.logger.warn(
+        `The "prerenderFormat" option set to "file" had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
+          `Check that prerendering is enabled ("outputMode" set to "static" with server routes, or "prerender"). ` +
           `If it is, this version of @angular/build is not supported.`
       );
-      yield { ...result, success: false };
-    } else {
-      yield result;
     }
+    yield result;
     callsBefore = calls;
   }
 }

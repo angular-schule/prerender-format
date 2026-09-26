@@ -61,14 +61,6 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
     .filter(([, options]) => shipsServer(options))
     .map(([name]) => name);
 
-  if (configurationsWithServer.length) {
-    throw new SchematicsException(
-      `The build target of "${options.project}" ships an Angular SSR server (${configurationsWithServer.join(', ')}). ` +
-        `prerenderFormat "file" is not supported when the build produces a server, because the SSR server looks up prerendered pages as 'index.html'. ` +
-        `Use a static build ("outputMode": "static", or prerendering without "ssr") and run ng add again.`
-    );
-  }
-
   buildTarget.builder = BUILDER_NAME;
   buildTarget.options = { ...buildTarget.options, prerenderFormat: 'file' };
 
@@ -77,6 +69,14 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
   context.logger.info('');
   context.logger.info('🚀 @angular-schule/prerender-format is ready!');
   context.logger.info('');
+  if (configurationsWithServer.length) {
+    context.logger.warn(
+      `⚠️  The build target of "${options.project}" produces a server (${configurationsWithServer.join(', ')}). ` +
+        `There, prerenderFormat "file" is not considered and routes stay '<route>/index.html'. ` +
+        `Use "outputMode": "static" to get '<route>.html'.`
+    );
+    context.logger.info('');
+  }
   context.logger.info('Next steps:');
   context.logger.info('  1. Make sure your host serves foo.html under /foo without a redirect.');
   context.logger.info('  2. Build via: ng build');

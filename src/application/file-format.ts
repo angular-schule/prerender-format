@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 
 /** A prerendered page as returned by `prerenderPages()` of `@angular/build`. */
@@ -10,7 +11,7 @@ export type PrerenderOutput = Record<string, PrerenderedFile>;
 
 export interface PrerenderResult {
   output: PrerenderOutput;
-  errors?: string[];
+  warnings?: string[];
   [key: string]: unknown;
 }
 
@@ -18,7 +19,7 @@ export type PrerenderPages = (...args: unknown[]) => Promise<PrerenderResult>;
 
 export interface FileOutputResult {
   output: PrerenderOutput;
-  errors: string[];
+  warnings: string[];
 }
 
 const INDEX_FILE = 'index.html';
@@ -27,10 +28,16 @@ const PATCHED = Symbol.for('@angular-schule/prerender-format:patched');
 const PRERENDER_MODULE = 'src/utils/server-rendering/prerender.js';
 
 let prerenderCalls = 0;
+let reservedFiles: string[] = [];
 
 /** Number of `prerenderPages()` calls that went through the wrapper in this process. */
 export function getPrerenderCalls(): number {
   return prerenderCalls;
+}
+
+/** Top-level file names that a route must not take over, such as the CSR index `index.csr.html`. */
+export function setReservedFiles(files: string[]): void {
+  reservedFiles = files.map(file => file.toLowerCase());
 }
 
 /**
@@ -45,7 +52,7 @@ export function toFilePath(outPath: string): string {
   return outPath.slice(0, -INDEX_SUFFIX.length) + '.html';
 }
 
-/** Route of an output path, for error messages: `blog/index/index.html` → `/blog/index`. */
+/** Route of an output path, for messages: `blog/index/index.html` → `/blog/index`. */
 function routeOf(outPath: string): string {
   if (outPath === INDEX_FILE) {
     return '/';
@@ -55,48 +62,53 @@ function routeOf(outPath: string): string {
 }
 
 /**
- * Renames all keys of a prerender `output` record.
- * Routes whose last segment is `index` are reported as errors: as `…/index.html` they would be
- * served under the parent path, and `/index` would overwrite the start page.
+ * Renames all keys of a prerender `output` record from `foo/index.html` to `foo.html`.
+ * A route keeps `foo/index.html` (with a warning) when `foo.html` is not safe:
+ * - its last segment is `index` in any letter case: `index.html` is served for the parent path,
+ *   and on macOS and Windows `Index.html` is the same file as `index.html`,
+ * - the file name is reserved, such as the CSR index `index.csr.html`,
+ * - another route already uses the file name (compared case-insensitively).
  */
-export function toFileOutput(output: PrerenderOutput): FileOutputResult {
+export function toFileOutput(output: PrerenderOutput, reserved: string[] = reservedFiles): FileOutputResult {
   const renamed: PrerenderOutput = {};
-  const errors: string[] = [];
-  const routeByFilePath = new Map<string, string>();
+  const warnings: string[] = [];
+  const usedFiles = new Map<string, string>();
+  const reservedLower = reserved.map(file => file.toLowerCase());
 
   for (const [outPath, file] of Object.entries(output)) {
     const route = routeOf(outPath);
     const filePath = toFilePath(outPath);
-
-    // Case-insensitive: on macOS and Windows, 'Index.html' is the same file as 'index.html'.
+    const lowerFilePath = filePath.toLowerCase();
     const lowerOutPath = outPath.toLowerCase();
-    if (lowerOutPath.endsWith('/index' + INDEX_SUFFIX) || lowerOutPath === 'index' + INDEX_SUFFIX) {
-      errors.push(
-        `Route '${route}' cannot be prerendered with 'prerenderFormat: "file"': ` +
-          `its file '${filePath}' would be served as '${route.slice(0, -'index'.length)}', not as '${route}'. ` +
-          `Rename the route or use 'prerenderFormat: "directory"'.`
-      );
+
+    let reason: string | undefined;
+    if (filePath !== outPath) {
+      if (lowerOutPath.endsWith('/index' + INDEX_SUFFIX) || lowerOutPath === 'index' + INDEX_SUFFIX) {
+        reason = `'${filePath}' would be served for '${route.slice(0, -'index'.length)}'`;
+      } else if (reservedLower.includes(lowerFilePath)) {
+        reason = `'${filePath}' is used by the build itself`;
+      } else if (usedFiles.has(lowerFilePath)) {
+        reason = `'${filePath}' is already used by route '${usedFiles.get(lowerFilePath)}'`;
+      }
+    }
+
+    if (reason) {
+      warnings.push(`Route '${route}' is written to '${outPath}' instead, because ${reason}.`);
+      renamed[outPath] = file;
       continue;
     }
 
-    const existingRoute = routeByFilePath.get(filePath);
-    if (existingRoute !== undefined) {
-      errors.push(
-        `Routes '${existingRoute}' and '${route}' both map to the file '${filePath}' with 'prerenderFormat: "file"'.`
-      );
-      continue;
-    }
-
-    routeByFilePath.set(filePath, route);
+    usedFiles.set(lowerFilePath, route);
     renamed[filePath] = file;
   }
 
-  return { output: renamed, errors };
+  return { output: renamed, warnings };
 }
 
 /**
  * Wraps `prerenderPages` so that its `output` record uses the "file" format.
- * Problems are returned as build errors of `prerenderPages`, so Angular reports them like any other build error.
+ * Routes that keep the directory format are reported as build warnings of `prerenderPages`.
+ * An unknown result is passed through unchanged.
  */
 export function wrapPrerenderPages(prerenderPages: PrerenderPages): PrerenderPages {
   const wrapped = async function (this: unknown, ...args: unknown[]) {
@@ -105,18 +117,15 @@ export function wrapPrerenderPages(prerenderPages: PrerenderPages): PrerenderPag
       !result ||
       typeof result.output !== 'object' ||
       result.output === null ||
-      !Array.isArray(result.errors)
+      !Array.isArray(result.warnings)
     ) {
-      throw new Error(
-        '@angular-schule/prerender-format: prerenderPages() returned an unknown result. ' +
-          'This version of @angular/build is not supported.'
-      );
+      return result;
     }
     prerenderCalls++;
 
-    const { output, errors } = toFileOutput(result.output);
+    const { output, warnings } = toFileOutput(result.output);
 
-    return { ...result, output, errors: [...result.errors, ...errors] };
+    return { ...result, output, warnings: [...(result.warnings as string[]), ...warnings] };
   };
   Object.defineProperty(wrapped, PATCHED, { value: true });
 
@@ -127,33 +136,33 @@ function isPatched(fn: PrerenderPages): boolean {
   return (fn as unknown as Record<symbol, unknown>)[PATCHED] === true;
 }
 
+export type InstallResult = { installed: true } | { installed: false; reason: string };
+
 /**
  * Replaces `prerenderPages` of the given `@angular/build` installation.
  * `execute-post-bundle.js` reads the function from the module's exports object on every call,
  * so the replacement takes effect for regular and localized builds alike.
+ * Returns the reason instead of replacing anything when the internals are not as expected.
  */
-export function installFileFormat(angularBuildRoot: string): void {
+export function installFileFormat(angularBuildRoot: string): InstallResult {
   const modulePath = path.join(angularBuildRoot, PRERENDER_MODULE);
-  let prerenderModule: { prerenderPages?: PrerenderPages };
-  try {
-    prerenderModule = require(modulePath);
-  } catch (error) {
-    throw new Error(
-      `@angular-schule/prerender-format: cannot load '${modulePath}'. This version of @angular/build is not supported.`,
-      { cause: error }
-    );
+  if (!fs.existsSync(modulePath)) {
+    return { installed: false, reason: `'${modulePath}' does not exist. This version of @angular/build is not supported.` };
   }
 
+  const prerenderModule: { prerenderPages?: PrerenderPages } = require(modulePath);
   const descriptor = Object.getOwnPropertyDescriptor(prerenderModule, 'prerenderPages');
   const prerenderPages = prerenderModule.prerenderPages;
   if (typeof prerenderPages !== 'function' || !descriptor?.writable) {
-    throw new Error(
-      `@angular-schule/prerender-format: '${modulePath}' exports no replaceable prerenderPages(). ` +
-        'This version of @angular/build is not supported.'
-    );
+    return {
+      installed: false,
+      reason: `'${modulePath}' exports no replaceable prerenderPages(). This version of @angular/build is not supported.`
+    };
   }
 
   if (!isPatched(prerenderPages)) {
     prerenderModule.prerenderPages = wrapPrerenderPages(prerenderPages);
   }
+
+  return { installed: true };
 }

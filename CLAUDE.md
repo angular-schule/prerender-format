@@ -70,10 +70,14 @@ For pre-release versions, after publishing:
 npm dist-tag add @angular-schule/prerender-format@X.X.X-rc.X next
 ```
 
+## Principle: warn and fall back, never fail
+
+The option must never make a build fail. Whenever the "file" format does not apply, log a warning and keep the behavior of `@angular/build:application` (`<route>/index.html`), for the whole build or for a single route. No `throw` and no `try/catch` for control flow: functions that can fail return a result (see `InstallResult`). The only exceptions are the `SchematicsException`s of `ng add` for invalid input, as the Angular schematics API expects.
+
 ## Architecture
 
 1. **Builder** (`src/application/`):
-   - `builder.ts` - Angular builder entry point, called by `ng build`. Strips `prerenderFormat`, refuses the "file" format when a server is shipped, delegates to `buildApplication` and fails a build whose prerendered pages did not go through the wrapper.
+   - `builder.ts` - Angular builder entry point, called by `ng build`. Strips `prerenderFormat` and delegates to `buildApplication`. Whenever the "file" format does not apply (a server is produced, the internals of `@angular/build` differ, nothing went through the wrapper), it logs a warning and the build behaves like `@angular/build:application`.
    - `ships-server.ts` - The rule for "this build ships an SSR server", shared by builder and `ng add`.
    - `file-format.ts` - Wraps the internal `prerenderPages()` of `@angular/build`. `execute-post-bundle.js` reads it from the module's exports object at call time, so replacing the export takes effect for regular and localized builds.
    - `schema.json` - Generated, see above.
@@ -81,8 +85,8 @@ npm dist-tag add @angular-schule/prerender-format@X.X.X-rc.X next
 2. **Schematic** (`src/ng-add.ts`):
    - Implements `ng add @angular-schule/prerender-format`
    - Swaps the build target's builder and sets `prerenderFormat: "file"`
-   - Stops if the build target or one of its configurations ships an SSR server
+   - Warns if the build target or one of its configurations produces an SSR server
 
 ### Internal API
 
-`prerenderPages()` in `@angular/build/src/utils/server-rendering/prerender.js` is not public. The builder fails loudly if the module or the export is missing, and `file-format.spec.ts` checks the call site in `execute-post-bundle.js`. The package supports Angular 22 only. `.github/scripts/test-angular-app.sh` builds a fresh Angular app (lowest and latest 22.x in CI) and checks `ng add`, the "file" output for two locales and the `/index` error.
+`prerenderPages()` in `@angular/build/src/utils/server-rendering/prerender.js` is not public. If the module or the export is missing, `installFileFormat()` returns the reason and the builder warns instead of patching, and `file-format.spec.ts` checks the call site in `execute-post-bundle.js`. The package supports Angular 22 only. `.github/scripts/test-angular-app.sh` builds a fresh Angular app (lowest and latest 22.x in CI) and checks `ng add`, the server warning, the "file" output for two locales and the `/index` fallback.

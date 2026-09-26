@@ -44,6 +44,7 @@ describe('ng-add', () => {
       builder: BUILDER_NAME,
       options: { outputMode: 'static', prerenderFormat: 'file' }
     });
+    expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
   it('selects the only project automatically', async () => {
@@ -65,31 +66,34 @@ describe('ng-add', () => {
     expect(buildTarget(tree, 'site').builder).toBe(BUILDER_NAME);
   });
 
-  it('refuses a build that ships a server (outputMode server)', async () => {
+  it('switches a build that produces a server, with a warning', async () => {
     const tree = Tree.empty();
     tree.create('angular.json', angularJson({ site: app(undefined, { outputMode: 'server' }) }));
 
-    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(
-      /ships an Angular SSR server \(options\)/
-    );
+    await ngAdd({ project: 'site' })(tree, mockContext);
+
+    expect(buildTarget(tree, 'site').builder).toBe(BUILDER_NAME);
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('produces a server (options)'));
   });
 
-  it('refuses legacy SSR without outputMode', async () => {
+  it('warns for legacy SSR without outputMode', async () => {
     const tree = Tree.empty();
     tree.create('angular.json', angularJson({ site: app(undefined, { ssr: true, server: 'src/main.server.ts' }) }));
 
-    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(/ships an Angular SSR server/);
+    await ngAdd({ project: 'site' })(tree, mockContext);
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('produces a server'));
   });
 
-  it('refuses a configuration that switches to outputMode server', async () => {
+  it('names a configuration that switches to outputMode server', async () => {
     const tree = Tree.empty();
     const site = app();
     Object.assign(site.architect.build, { configurations: { production: { outputMode: 'server' } } });
     tree.create('angular.json', angularJson({ site }));
 
-    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(
-      /configuration "production"/
-    );
+    await ngAdd({ project: 'site' })(tree, mockContext);
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('configuration "production"'));
   });
 
   it('accepts a static build with an SSR entry and legacy prerendering without server', async () => {

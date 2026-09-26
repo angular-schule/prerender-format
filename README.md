@@ -50,7 +50,7 @@ If you want the option in Angular, please give the issue and the pull request a 
 ## ⚠️ Prerequisites <a name="prerequisites"></a>
 
 - Angular 22 with the application builder (`@angular/build:application`)
-- `"outputMode": "static"`
+- `"outputMode": "static"` (with a server, the option is not considered, see [Known limitations](#limitations))
 - A host that serves `blog/my-article.html` under `/blog/my-article` without a redirect (see [Hosts](#hosts))
 
 ## 🚀 Quick Start <a name="quickstart"></a>
@@ -63,7 +63,7 @@ ng build
 ## ⚙️ Installation <a name="installation"></a>
 
 `ng add @angular-schule/prerender-format` installs the package and changes the builder of your build target in `angular.json` and sets `prerenderFormat`.
-Your build must already use `"outputMode": "static"`: if the build target (or one of its configurations) ships an SSR server, `ng add` stops and tells you so.
+`prerenderFormat: "file"` only applies to static builds. If the build target (or one of its configurations) produces an SSR server, `ng add` still sets it up and shows a warning.
 
 ```json
 "build": {
@@ -95,7 +95,7 @@ The name and the values follow Astro's [`build.format`](#other-frameworks).
 Parent and child routes live side by side: `blog.html` next to the folder `blog/`.
 The start page of each locale (for example with base href `/en/`) stays `index.html`.
 
-A route whose last segment is `index` (`/index`, `/docs/index`) fails the build with a clear message: as `index.html` it would be served under the parent path, and `/index` would overwrite the start page.
+If `blog/my-article.html` is not safe for a route, that route keeps `blog/my-article/index.html` and the build shows a warning. This applies to a route whose last segment is `index` in any letter case (`/index`, `/blog/index`), to a file name the build uses itself (such as `index.csr.html`), and to a file name another route already uses.
 
 ## 🔭 Other frameworks <a name="other-frameworks"></a>
 
@@ -134,11 +134,12 @@ The builder calls `buildApplication` from `@angular/build` and wraps its interna
 The wrapper renames `blog/my-article/index.html` to `blog/my-article.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
 
 `prerenderPages()` is internal API, so this package supports Angular 22 only.
-After a successful build, the builder checks that the prerendered pages actually went through the wrapper, and fails otherwise.
+If the prerendered pages did not go through the wrapper (nothing was prerendered, or a version of `@angular/build` with different internals), the build shows a warning and keeps the directory layout.
+The option never makes your build fail.
 
 ## 📁 Known limitations <a name="limitations"></a>
 
-- **Static builds only, by design.** `prerenderFormat: "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the build fails: a server needs no `.html` files, it answers `/blog/my-article` directly without redirecting to `/blog/my-article/`, and the Angular SSR server looks up prerendered pages as `index.html`.
+- **Static builds only, by design.** `prerenderFormat: "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the option is not considered and the build shows a warning: a server needs no `.html` files, it answers `/blog/my-article` directly without redirecting to `/blog/my-article/`, and the Angular SSR server looks up prerendered pages as `index.html`.
 
   ✅ Works: static output, the `ssr` entry only renders at build time
 
@@ -161,7 +162,7 @@ After a successful build, the builder checks that the prerendered pages actually
   }
   ```
 
-  ❌ Fails: a server is deployed
+  ⚠️ Not considered, with a warning: a server is deployed
 
   ```json
   "options": {
@@ -172,7 +173,7 @@ After a successful build, the builder checks that the prerendered pages actually
   }
   ```
 
-  ❌ Fails: SSR without `outputMode` also deploys a server
+  ⚠️ Not considered, with a warning: SSR without `outputMode` also deploys a server
 
   ```json
   "options": {

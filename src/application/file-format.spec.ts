@@ -44,35 +44,42 @@ describe('toFileOutput', () => {
         'blog.html': file('blog'),
         'blog/a.html': file('a')
       },
-      errors: []
+      warnings: []
     });
   });
 
-  it('reports the route /index, which would overwrite the start page', () => {
-    const { errors } = toFileOutput({ 'index.html': file('home'), 'index/index.html': file('x') });
+  it('keeps routes ending in index in any letter case as directories, with a warning', () => {
+    const { output, warnings } = toFileOutput({
+      'index.html': file('home'),
+      'index/index.html': file('x'),
+      'Index/index.html': file('y'),
+      'docs/index/index.html': file('z')
+    });
 
-    expect(errors).toEqual([expect.stringContaining("Route '/index' cannot be prerendered")]);
-    expect(errors[0]).toContain("would be served as '/'");
+    expect(Object.keys(output)).toEqual(['index.html', 'index/index.html', 'Index/index.html', 'docs/index/index.html']);
+    expect(warnings).toEqual([
+      "Route '/index' is written to 'index/index.html' instead, because 'index.html' would be served for '/'.",
+      "Route '/Index' is written to 'Index/index.html' instead, because 'Index.html' would be served for '/'.",
+      "Route '/docs/index' is written to 'docs/index/index.html' instead, because 'docs/index.html' would be served for '/docs/'."
+    ]);
   });
 
-  it('reports routes named index regardless of case', () => {
-    const { errors } = toFileOutput({ 'index.html': file('home'), 'Index/index.html': file('x') });
+  it('keeps routes that would take over a reserved file as directories, with a warning', () => {
+    const { output, warnings } = toFileOutput({ 'index.csr/index.html': file('x'), '404/index.html': file('y') }, ['index.csr.html', '404.html']);
 
-    expect(errors).toEqual([expect.stringContaining("Route '/Index' cannot be prerendered")]);
+    expect(Object.keys(output)).toEqual(['index.csr/index.html', '404/index.html']);
+    expect(warnings).toEqual([
+      "Route '/index.csr' is written to 'index.csr/index.html' instead, because 'index.csr.html' is used by the build itself.",
+      "Route '/404' is written to '404/index.html' instead, because '404.html' is used by the build itself."
+    ]);
   });
 
-  it('reports nested routes ending in index', () => {
-    const { errors } = toFileOutput({ 'docs/index/index.html': file('x') });
+  it('keeps a route whose file name is already used as a directory, with a warning', () => {
+    const { output, warnings } = toFileOutput({ 'Foo/index.html': file('1'), 'foo/index.html': file('2') }, []);
 
-    expect(errors).toEqual([expect.stringContaining("Route '/docs/index' cannot be prerendered")]);
-    expect(errors[0]).toContain("would be served as '/docs/'");
-  });
-
-  it('reports colliding routes', () => {
-    const { errors } = toFileOutput({ 'foo/index.html': file('1'), 'foo.html': file('2') });
-
-    expect(errors).toEqual([
-      "Routes '/foo' and '/foo.html' both map to the file 'foo.html' with 'prerenderFormat: \"file\"'."
+    expect(Object.keys(output)).toEqual(['Foo.html', 'foo/index.html']);
+    expect(warnings).toEqual([
+      "Route '/foo' is written to 'foo/index.html' instead, because 'foo.html' is already used by route '/Foo'."
     ]);
   });
 });
@@ -94,21 +101,26 @@ describe('wrapPrerenderPages', () => {
     expect(getPrerenderCalls()).toBe(callsBefore + 1);
   });
 
-  it('appends its errors to the build errors', async () => {
+  it('appends its warnings to the build warnings', async () => {
     const original: PrerenderPages = async () => ({
-      errors: ['existing'],
+      errors: [],
+      warnings: ['existing'],
       output: { 'index/index.html': { content: 'x', appShellRoute: false } }
     });
 
     const result = await wrapPrerenderPages(original)();
 
-    expect(result.errors).toEqual(['existing', expect.stringContaining("Route '/index'")]);
+    expect(result.warnings).toEqual(['existing', expect.stringContaining("Route '/index'")]);
+    expect(Object.keys(result.output)).toEqual(['index/index.html']);
   });
 
-  it('fails loudly on an unknown result shape', async () => {
-    const original = (async () => ({ output: {} })) as unknown as PrerenderPages;
+  it('passes an unknown result through unchanged', async () => {
+    const unknown = { output: {} };
+    const original = (async () => unknown) as unknown as PrerenderPages;
+    const callsBefore = getPrerenderCalls();
 
-    await expect(wrapPrerenderPages(original)()).rejects.toThrow(/not supported/);
+    expect(await wrapPrerenderPages(original)()).toBe(unknown);
+    expect(getPrerenderCalls()).toBe(callsBefore);
   });
 });
 
@@ -117,9 +129,9 @@ describe('installFileFormat', () => {
     const prerender = require(path.join(angularBuildRoot, 'src/utils/server-rendering/prerender.js'));
     const original = prerender.prerenderPages;
 
-    installFileFormat(angularBuildRoot);
+    expect(installFileFormat(angularBuildRoot)).toEqual({ installed: true });
     const patched = prerender.prerenderPages;
-    installFileFormat(angularBuildRoot);
+    expect(installFileFormat(angularBuildRoot)).toEqual({ installed: true });
 
     expect(patched).not.toBe(original);
     expect(prerender.prerenderPages).toBe(patched);
@@ -135,6 +147,9 @@ describe('installFileFormat', () => {
   });
 
   it('rejects an unsupported @angular/build layout', () => {
-    expect(() => installFileFormat('/does/not/exist')).toThrow(/not supported/);
+    expect(installFileFormat('/does/not/exist')).toEqual({
+      installed: false,
+      reason: expect.stringContaining('not supported')
+    });
   });
 });
