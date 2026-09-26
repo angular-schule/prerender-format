@@ -37,7 +37,7 @@ export function getPrerenderCalls(): number {
 
 /** Top-level file names that a route must not take over, such as the CSR index `index.csr.html`. */
 export function setReservedFiles(files: string[]): void {
-  reservedFiles = files.map(file => file.toLowerCase());
+  reservedFiles = files;
 }
 
 /**

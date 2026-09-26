@@ -1,6 +1,6 @@
 {
   "name": "@angular-schule/prerender-format",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Angular application builder that writes prerendered routes as foo.html instead of foo/index.html (no trailing slash redirects)",
   "main": "index.js",
   "types": "index.d.ts",
