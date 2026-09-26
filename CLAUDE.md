@@ -63,6 +63,8 @@ Publishing uses [npm Trusted Publishers](https://docs.npmjs.com/trusted-publishe
 
 Publishes with provenance attestation for supply chain security.
 
+The trusted publisher on npmjs.com (package settings, GitHub Actions: `angular-schule` / `prerender-format` / `npm-publish.yml` / environment `npm-publish`) needs **Allowed actions: Allow `npm publish`** checked. Without it, only `npm stage publish` is allowed, and the workflow fails with `E403 … OIDC permission denied for this action`.
+
 For pre-release versions, after publishing:
 ```bash
 npm dist-tag add @angular-schule/prerender-format@X.X.X-rc.X next
