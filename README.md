@@ -41,7 +41,7 @@ The same route becomes `blog/my-article.html`, and hosts like Cloudflare Pages s
 - **Old links keep working:** addresses with a trailing slash redirect to the address without it (measured on Cloudflare Pages, see [Hosts](#hosts)).
 
 The idea comes from [angular/angular-cli#29173](https://github.com/angular/angular-cli/issues/29173), which asks for an option to write `<route>.html` instead of `<route>/index.html`.
-The pull request [angular/angular-cli#34180](https://github.com/angular/angular-cli/pull/34180) adds such an option to Angular itself, with the same name and values as this builder: `prerenderFormat`, `'directory'` or `'file'`.
+The pull request [angular/angular-cli#34180](https://github.com/angular/angular-cli/pull/34180) adds the same option to Angular itself: `prerender.format` with `'directory'` or `'file'`.
 The builder is a stopgap: developed and tested for Angular 22, until Angular has a built-in option and this package is no longer needed.
 If you want the option in Angular, please give the issue and the pull request a 👍.
 
@@ -62,15 +62,17 @@ ng build
 
 ## ⚙️ Installation <a name="installation"></a>
 
-`ng add @angular-schule/prerender-format` installs the package and changes the builder of your build target in `angular.json` and sets `prerenderFormat`.
-`prerenderFormat: "file"` only applies to static builds. If the build target (or one of its configurations) produces an SSR server, `ng add` still sets it up and shows a warning.
+`ng add @angular-schule/prerender-format` installs the package, changes the builder of your build target in `angular.json` and sets `prerender.format`.
+`"format": "file"` only applies to static builds. If the build target (or one of its configurations) produces an SSR server, `ng add` still sets it up and shows a warning.
 
 ```json
 "build": {
   "builder": "@angular-schule/prerender-format:application",
   "options": {
     "outputMode": "static",
-    "prerenderFormat": "file"
+    "prerender": {
+      "format": "file"
+    }
   }
 }
 ```
@@ -80,12 +82,12 @@ Use `--project` to choose the project in a workspace with several projects.
 
 ## 📦 Options <a name="options"></a>
 
-#### prerenderFormat
+#### prerender.format
 
 - **optional**
 - Default: `directory`
 
-| `prerenderFormat` | Route `blog/my-article` | Start page |
+| `prerender.format` | Route `blog/my-article` | Start page |
 |---|---|---|
 | `directory` | `blog/my-article/index.html` | `index.html` |
 | `file` | `blog/my-article.html` | `index.html` |
@@ -95,11 +97,11 @@ The name and the values follow Astro's [`build.format`](#other-frameworks).
 Parent and child routes live side by side: `blog.html` next to the folder `blog/`.
 The start page of each locale (for example with base href `/en/`) stays `index.html`.
 
-If `blog/my-article.html` is not safe for a route, that route keeps `blog/my-article/index.html` and the build shows a warning. This applies to a route whose last segment is `index` in any letter case (`/index`, `/blog/index`), to a file name the build uses itself (such as `index.csr.html`), and to a file name another route already uses.
+`prerender.format` is also considered with `"outputMode": "static"`, where Angular ignores the other `prerender` settings.
 
 ## 🔭 Other frameworks <a name="other-frameworks"></a>
 
-Static site generators have offered this choice for a long time. We decided to borrow the terminology from Astro: `build.format` with `'directory'` and `'file'` became `prerenderFormat` with the same values.
+Static site generators have offered this choice for a long time. We decided to borrow the terminology from Astro: `build.format` with `'directory'` and `'file'` became `prerender.format` with the same values.
 
 | Framework | Option | `blog/my-article/index.html` | `blog/my-article.html` |
 |---|---|---|---|
@@ -108,13 +110,13 @@ Static site generators have offered this choice for a long time. We decided to b
 | SvelteKit | `trailingSlash` | `'always'` | `'never'` (default) |
 | Nuxt 2 | `generate.subFolders` | `true` (default) | `false` |
 | Hugo | `uglyURLs` | `false` (default) | `true` |
-| **Angular** | **NEW: `prerenderFormat`** | **`'directory'` (default)** | **`'file'`** |
+| **Angular** | **NEW: `prerender.format`** | **`'directory'` (default)** | **`'file'`** |
 
 Astro's documentation recommends `build.format: 'file'` together with `trailingSlash: 'never'`, which is exactly the combination this builder enables for Angular.
 
 ## 🌍 Hosts <a name="hosts"></a>
 
-Measured on **Cloudflare Pages** with `prerenderFormat: "file"`:
+Measured on **Cloudflare Pages** with `"prerender": { "format": "file" }`:
 
 | Request | Response |
 |---|---|
@@ -130,7 +132,8 @@ Check your host before switching.
 
 ## 🔧 How it works <a name="how-it-works"></a>
 
-The builder calls `buildApplication` from `@angular/build` and wraps its internal `prerenderPages()` function, which returns the prerendered pages as a record of output paths.
+The builder takes `format` out of the `prerender` option and calls `buildApplication` from `@angular/build` with all other options.
+It wraps the internal `prerenderPages()` function of `@angular/build`, which returns the prerendered pages as a record of output paths.
 The wrapper renames `blog/my-article/index.html` to `blog/my-article.html` before anything is written, so the service worker manifest and all later build steps see the final file names.
 
 `prerenderPages()` is internal API, so this package supports Angular 22 only.
@@ -139,7 +142,7 @@ The option never makes your build fail.
 
 ## 📁 Known limitations <a name="limitations"></a>
 
-- **Static builds only, by design.** `prerenderFormat: "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the option is not considered and the build shows a warning: a server needs no `.html` files, it answers `/blog/my-article` directly without redirecting to `/blog/my-article/`, and the Angular SSR server looks up prerendered pages as `index.html`.
+- **Static builds only, by design.** `"format": "file"` solves a problem of static hosting and makes no sense in other setups. An `ssr` entry is fine as long as `"outputMode"` is `"static"`: Angular then uses it only during `ng build` to prerender the pages, and no server is deployed. If a server is deployed, the option is not considered and the build shows a warning: a server needs no `.html` files, it answers `/blog/my-article` directly without redirecting to `/blog/my-article/`, and the Angular SSR server looks up prerendered pages as `index.html`.
 
   ✅ Works: static output, the `ssr` entry only renders at build time
 
@@ -148,7 +151,7 @@ The option never makes your build fail.
     "outputMode": "static",
     "server": "src/main.server.ts",
     "ssr": { "entry": "src/server.ts" },
-    "prerenderFormat": "file"
+    "prerender": { "format": "file" }
   }
   ```
 
@@ -157,8 +160,7 @@ The option never makes your build fail.
   ```json
   "options": {
     "server": "src/main.server.ts",
-    "prerender": true,
-    "prerenderFormat": "file"
+    "prerender": { "format": "file" }
   }
   ```
 
@@ -169,7 +171,7 @@ The option never makes your build fail.
     "outputMode": "server",
     "server": "src/main.server.ts",
     "ssr": { "entry": "src/server.ts" },
-    "prerenderFormat": "file"
+    "prerender": { "format": "file" }
   }
   ```
 
@@ -179,7 +181,7 @@ The option never makes your build fail.
   "options": {
     "server": "src/main.server.ts",
     "ssr": { "entry": "src/server.ts" },
-    "prerenderFormat": "file"
+    "prerender": { "format": "file" }
   }
   ```
 

@@ -9,6 +9,10 @@ interface NgAddOptions {
 }
 
 export const BUILDER_NAME = '@angular-schule/prerender-format:application';
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 const ANGULAR_BUILDER_NAME = '@angular/build:application';
 
 export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: SchematicContext) => {
@@ -61,8 +65,12 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
     .filter(([, options]) => shipsServer(options))
     .map(([name]) => name);
 
+  const prerender = buildTarget.options?.prerender;
   buildTarget.builder = BUILDER_NAME;
-  buildTarget.options = { ...buildTarget.options, prerenderFormat: 'file' };
+  buildTarget.options = {
+    ...buildTarget.options,
+    prerender: { ...(isJsonObject(prerender) ? prerender : {}), format: 'file' }
+  };
 
   await workspaces.writeWorkspace(workspace, host);
 
@@ -72,7 +80,7 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
   if (configurationsWithServer.length) {
     context.logger.warn(
       `⚠️  The build target of "${options.project}" produces a server (${configurationsWithServer.join(', ')}). ` +
-        `There, prerenderFormat "file" is not considered and routes stay '<route>/index.html'. ` +
+        `There, prerender.format "file" is not considered and routes stay '<route>/index.html'. ` +
         `Use "outputMode": "static" to get '<route>.html'.`
     );
     context.logger.info('');

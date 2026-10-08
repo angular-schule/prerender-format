@@ -6,7 +6,7 @@
   "properties": {
     "project": {
       "type": "string",
-      "description": "The project whose build target should use prerenderFormat 'file'",
+      "description": "The project whose build target should use prerender.format 'file'",
       "$default": {
         "$source": "projectName"
       }

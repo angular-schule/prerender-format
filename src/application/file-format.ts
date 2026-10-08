@@ -17,27 +17,16 @@ export interface PrerenderResult {
 
 export type PrerenderPages = (...args: unknown[]) => Promise<PrerenderResult>;
 
-export interface FileOutputResult {
-  output: PrerenderOutput;
-  warnings: string[];
-}
-
 const INDEX_FILE = 'index.html';
 const INDEX_SUFFIX = '/' + INDEX_FILE;
 const PATCHED = Symbol.for('@angular-schule/prerender-format:patched');
 const PRERENDER_MODULE = 'src/utils/server-rendering/prerender.js';
 
 let prerenderCalls = 0;
-let reservedFiles: string[] = [];
 
 /** Number of `prerenderPages()` calls that went through the wrapper in this process. */
 export function getPrerenderCalls(): number {
   return prerenderCalls;
-}
-
-/** Top-level file names that a route must not take over, such as the CSR index `index.csr.html`. */
-export function setReservedFiles(files: string[]): void {
-  reservedFiles = files;
 }
 
 /**
@@ -52,62 +41,18 @@ export function toFilePath(outPath: string): string {
   return outPath.slice(0, -INDEX_SUFFIX.length) + '.html';
 }
 
-/** Route of an output path, for messages: `blog/index/index.html` → `/blog/index`. */
-function routeOf(outPath: string): string {
-  if (outPath === INDEX_FILE) {
-    return '/';
-  }
-
-  return '/' + (outPath.endsWith(INDEX_SUFFIX) ? outPath.slice(0, -INDEX_SUFFIX.length) : outPath);
-}
-
-/**
- * Renames all keys of a prerender `output` record from `foo/index.html` to `foo.html`.
- * A route keeps `foo/index.html` (with a warning) when `foo.html` is not safe:
- * - its last segment is `index` in any letter case: `index.html` is served for the parent path,
- *   and on macOS and Windows `Index.html` is the same file as `index.html`,
- * - the file name is reserved, such as the CSR index `index.csr.html`,
- * - another route already uses the file name (compared case-insensitively).
- */
-export function toFileOutput(output: PrerenderOutput, reserved: string[] = reservedFiles): FileOutputResult {
+/** Renames all keys of a prerender `output` record from `foo/index.html` to `foo.html`. */
+export function toFileOutput(output: PrerenderOutput): PrerenderOutput {
   const renamed: PrerenderOutput = {};
-  const warnings: string[] = [];
-  const usedFiles = new Map<string, string>();
-  const reservedLower = reserved.map(file => file.toLowerCase());
-
   for (const [outPath, file] of Object.entries(output)) {
-    const route = routeOf(outPath);
-    const filePath = toFilePath(outPath);
-    const lowerFilePath = filePath.toLowerCase();
-    const lowerOutPath = outPath.toLowerCase();
-
-    let reason: string | undefined;
-    if (filePath !== outPath) {
-      if (lowerOutPath.endsWith('/index' + INDEX_SUFFIX) || lowerOutPath === 'index' + INDEX_SUFFIX) {
-        reason = `'${filePath}' would be served for '${route.slice(0, -'index'.length)}'`;
-      } else if (reservedLower.includes(lowerFilePath)) {
-        reason = `'${filePath}' is used by the build itself`;
-      } else if (usedFiles.has(lowerFilePath)) {
-        reason = `'${filePath}' is already used by route '${usedFiles.get(lowerFilePath)}'`;
-      }
-    }
-
-    if (reason) {
-      warnings.push(`Route '${route}' is written to '${outPath}' instead, because ${reason}.`);
-      renamed[outPath] = file;
-      continue;
-    }
-
-    usedFiles.set(lowerFilePath, route);
-    renamed[filePath] = file;
+    renamed[toFilePath(outPath)] = file;
   }
 
-  return { output: renamed, warnings };
+  return renamed;
 }
 
 /**
  * Wraps `prerenderPages` so that its `output` record uses the "file" format.
- * Routes that keep the directory format are reported as build warnings of `prerenderPages`.
  * An unknown result is passed through unchanged.
  */
 export function wrapPrerenderPages(prerenderPages: PrerenderPages): PrerenderPages {
@@ -123,9 +68,7 @@ export function wrapPrerenderPages(prerenderPages: PrerenderPages): PrerenderPag
     }
     prerenderCalls++;
 
-    const { output, warnings } = toFileOutput(result.output);
-
-    return { ...result, output, warnings: [...(result.warnings as string[]), ...warnings] };
+    return { ...result, output: toFileOutput(result.output) };
   };
   Object.defineProperty(wrapped, PATCHED, { value: true });
 

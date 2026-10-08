@@ -39,48 +39,10 @@ describe('toFileOutput', () => {
         'blog/a/index.html': file('a')
       })
     ).toEqual({
-      output: {
-        'index.html': file('home'),
-        'blog.html': file('blog'),
-        'blog/a.html': file('a')
-      },
-      warnings: []
-    });
-  });
-
-  it('keeps routes ending in index in any letter case as directories, with a warning', () => {
-    const { output, warnings } = toFileOutput({
       'index.html': file('home'),
-      'index/index.html': file('x'),
-      'Index/index.html': file('y'),
-      'docs/index/index.html': file('z')
+      'blog.html': file('blog'),
+      'blog/a.html': file('a')
     });
-
-    expect(Object.keys(output)).toEqual(['index.html', 'index/index.html', 'Index/index.html', 'docs/index/index.html']);
-    expect(warnings).toEqual([
-      "Route '/index' is written to 'index/index.html' instead, because 'index.html' would be served for '/'.",
-      "Route '/Index' is written to 'Index/index.html' instead, because 'Index.html' would be served for '/'.",
-      "Route '/docs/index' is written to 'docs/index/index.html' instead, because 'docs/index.html' would be served for '/docs/'."
-    ]);
-  });
-
-  it('keeps routes that would take over a reserved file as directories, with a warning', () => {
-    const { output, warnings } = toFileOutput({ 'index.csr/index.html': file('x'), '404/index.html': file('y') }, ['index.csr.html', '404.html']);
-
-    expect(Object.keys(output)).toEqual(['index.csr/index.html', '404/index.html']);
-    expect(warnings).toEqual([
-      "Route '/index.csr' is written to 'index.csr/index.html' instead, because 'index.csr.html' is used by the build itself.",
-      "Route '/404' is written to '404/index.html' instead, because '404.html' is used by the build itself."
-    ]);
-  });
-
-  it('keeps a route whose file name is already used as a directory, with a warning', () => {
-    const { output, warnings } = toFileOutput({ 'Foo/index.html': file('1'), 'foo/index.html': file('2') }, []);
-
-    expect(Object.keys(output)).toEqual(['Foo.html', 'foo/index.html']);
-    expect(warnings).toEqual([
-      "Route '/foo' is written to 'foo/index.html' instead, because 'foo.html' is already used by route '/Foo'."
-    ]);
   });
 });
 
@@ -99,19 +61,6 @@ describe('wrapPrerenderPages', () => {
       output: { 'about.html': { content: 'x', appShellRoute: false } }
     });
     expect(getPrerenderCalls()).toBe(callsBefore + 1);
-  });
-
-  it('appends its warnings to the build warnings', async () => {
-    const original: PrerenderPages = async () => ({
-      errors: [],
-      warnings: ['existing'],
-      output: { 'index/index.html': { content: 'x', appShellRoute: false } }
-    });
-
-    const result = await wrapPrerenderPages(original)();
-
-    expect(result.warnings).toEqual(['existing', expect.stringContaining("Route '/index'")]);
-    expect(Object.keys(result.output)).toEqual(['index/index.html']);
   });
 
   it('passes an unknown result through unchanged', async () => {

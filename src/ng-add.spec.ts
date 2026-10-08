@@ -42,7 +42,7 @@ describe('ng-add', () => {
 
     expect(buildTarget(tree, 'site')).toEqual({
       builder: BUILDER_NAME,
-      options: { outputMode: 'static', prerenderFormat: 'file' }
+      options: { outputMode: 'static', prerender: { format: 'file' } }
     });
     expect(mockLogger.warn).not.toHaveBeenCalled();
   });
@@ -63,7 +63,19 @@ describe('ng-add', () => {
     await ngAdd({ project: 'site' })(tree, mockContext);
     await ngAdd({ project: 'site' })(tree, mockContext);
 
-    expect(buildTarget(tree, 'site').builder).toBe(BUILDER_NAME);
+    expect(buildTarget(tree, 'site')).toEqual({
+      builder: BUILDER_NAME,
+      options: { outputMode: 'static', prerender: { format: 'file' } }
+    });
+  });
+
+  it('adds the format to existing prerender settings', async () => {
+    const tree = Tree.empty();
+    tree.create('angular.json', angularJson({ site: app(undefined, { prerender: { routesFile: 'routes.txt' } }) }));
+
+    await ngAdd({ project: 'site' })(tree, mockContext);
+
+    expect(buildTarget(tree, 'site').options).toEqual({ prerender: { routesFile: 'routes.txt', format: 'file' } });
   });
 
   it('switches a build that produces a server, with a warning', async () => {

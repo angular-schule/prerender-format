@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "title": "Application builder with prerenderFormat (based on @angular/build 22.2.0)",
+  "title": "Application builder with prerender.format (based on @angular/build 22.2.0)",
   "description": "Application builder target options",
   "type": "object",
   "properties": {
@@ -620,6 +620,15 @@
               "type": "boolean",
               "description": "Whether the builder should process the Angular Router configuration to find all unparameterized routes and prerender them.",
               "default": true
+            },
+            "format": {
+              "type": "string",
+              "description": "Defines the file layout of prerendered pages. 'directory': '/foo' is written to 'foo/index.html'. 'file': '/foo' is written to 'foo.html', which some hosting services serve for '/foo' without a redirect to '/foo/'. The root route of the application and of each locale is always written to 'index.html'. Only considered when the build does not produce a server.",
+              "enum": [
+                "directory",
+                "file"
+              ],
+              "default": "directory"
             }
           },
           "additionalProperties": false
@@ -665,15 +674,6 @@
         "static",
         "server"
       ]
-    },
-    "prerenderFormat": {
-      "type": "string",
-      "enum": [
-        "directory",
-        "file"
-      ],
-      "default": "directory",
-      "description": "File layout of prerendered routes. 'directory' writes 'foo/index.html', which works on every web server. 'file' writes 'foo.html' (the start page stays 'index.html'), like Astro's build.format. Only use 'file' if your host serves 'foo.html' under '/foo' without a redirect, for example GitHub Pages or Cloudflare Pages. Requires 'outputMode: \"static\"'."
     }
   },
   "additionalProperties": false,

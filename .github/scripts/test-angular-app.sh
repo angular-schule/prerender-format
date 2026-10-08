@@ -6,8 +6,8 @@
 #   package-tgz:           packed @angular-schule/prerender-format
 #   angular-version-range: version range for all @angular/* packages, e.g. "^22.0.0" or "~22.0.0"
 #
-# Checks: ng add and ng build warn for outputMode "server", ng add + ng build write <route>.html files
-# (also for a second locale), and a route "index" stays index/index.html with a warning.
+# Checks: ng add and ng build warn for outputMode "server", ng add sets prerender.format "file",
+# and ng build writes <route>.html files (also for a second locale).
 set -euo pipefail
 
 NG_NEW="$1"
@@ -67,6 +67,11 @@ expect_output "is not considered when the build produces a server" $NG build
 
 set_build_option outputMode '"static"'
 $NG add @angular-schule/prerender-format --skip-confirmation
+node -e '
+  const a = require("./angular.json");
+  const format = a.projects["'"$APP"'"].architect.build.options.prerender?.format;
+  if (format !== "file") { console.error("Expected prerender.format \"file\", got " + format); process.exit(1); }
+'
 
 cat > src/app/app.routes.ts <<'EOF'
 import { Routes } from '@angular/router';
@@ -117,15 +122,5 @@ for locale in en-US de; do
   done
   test ! -e "dist/$APP/browser/$locale/about/index.html" || { echo "Unexpected $locale/about/index.html"; exit 1; }
 done
-
-# A route "index" would overwrite the start page: it stays index/index.html, with a warning
-node -e '
-  const fs = require("fs");
-  const file = "src/app/app.routes.ts";
-  fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace("];", ",\n  { path: \"index\", component: App }\n];"));
-'
-expect_output "Route '/index' is written to 'index/index.html' instead" $NG build
-test -f "dist/$APP/browser/en-US/index/index.html" || { echo "Missing en-US/index/index.html"; exit 1; }
-test -f "dist/$APP/browser/en-US/index.html" || { echo "Missing en-US/index.html"; exit 1; }
 
 echo "Angular $RANGE: prerender format 'file' successful"

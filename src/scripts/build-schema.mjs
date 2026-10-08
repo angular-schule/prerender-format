@@ -1,4 +1,4 @@
-// Writes application/schema.json: the schema of @angular/build:application plus `prerenderFormat`.
+// Writes application/schema.json: the schema of @angular/build:application plus `prerender.format`.
 // `node scripts/build-schema.mjs --check` fails if application/schema.json is not in sync with the installed @angular/build.
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -15,15 +15,18 @@ const schema = JSON.parse(
 );
 
 schema.$id = 'AngularSchulePrerenderFormatApplicationSchema';
-schema.title = `Application builder with prerenderFormat (based on @angular/build ${version})`;
-schema.properties.prerenderFormat = {
+schema.title = `Application builder with prerender.format (based on @angular/build ${version})`;
+
+const prerenderObject = schema.properties.prerender.oneOf.find((variant) => variant.type === 'object');
+prerenderObject.properties.format = {
   type: 'string',
+  description:
+    "Defines the file layout of prerendered pages. 'directory': '/foo' is written to 'foo/index.html'. " +
+    "'file': '/foo' is written to 'foo.html', which some hosting services serve for '/foo' without a redirect to '/foo/'. " +
+    "The root route of the application and of each locale is always written to 'index.html'. " +
+    'Only considered when the build does not produce a server.',
   enum: ['directory', 'file'],
   default: 'directory',
-  description:
-    "File layout of prerendered routes. 'directory' writes 'foo/index.html', which works on every web server. " +
-    "'file' writes 'foo.html' (the start page stays 'index.html'), like Astro's build.format. Only use 'file' if your host serves 'foo.html' under '/foo' " +
-    "without a redirect, for example GitHub Pages or Cloudflare Pages. Requires 'outputMode: \"static\"'.",
 };
 
 const content = JSON.stringify(schema, null, 2) + '\n';

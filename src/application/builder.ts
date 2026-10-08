@@ -2,33 +2,49 @@ import { BuilderContext, BuilderOutput, createBuilder } from '@angular-devkit/ar
 import { ApplicationBuilderOptions, buildApplication } from '@angular/build';
 import * as path from 'path';
 
-import { getPrerenderCalls, installFileFormat, setReservedFiles } from './file-format';
+import { getPrerenderCalls, installFileFormat } from './file-format';
 import { shipsServer } from './ships-server';
 
 export type PrerenderFormat = 'directory' | 'file';
 
-export interface Schema extends ApplicationBuilderOptions {
+type PrerenderObject = Exclude<ApplicationBuilderOptions['prerender'], boolean | undefined>;
+
+export interface Schema extends Omit<ApplicationBuilderOptions, 'prerender'> {
   /**
-   * File layout of prerendered routes.
-   * - `directory` (default): `foo/index.html`
-   * - `file`: `foo.html`, the start page stays `index.html`
+   * Same as the `prerender` option of `@angular/build:application`, plus `format`:
+   * - `directory` (default): `/foo` is written to `foo/index.html`
+   * - `file`: `/foo` is written to `foo.html`, the start page stays `index.html`
    */
-  prerenderFormat?: PrerenderFormat;
-}
-
-/** Top-level file names of the build that a prerendered route must not take over. */
-function reservedFiles(options: ApplicationBuilderOptions): string[] {
-  const files = ['index.csr.html', 'index.server.html'];
-  const index = options.index as unknown;
-  if (index && typeof index === 'object' && typeof (index as { output?: unknown }).output === 'string') {
-    files.push(path.posix.basename((index as { output: string }).output));
-  }
-
-  return files;
+  prerender?: boolean | (PrerenderObject & { format?: PrerenderFormat });
 }
 
 /**
- * Runs `@angular/build:application` and, with `prerenderFormat: "file"`,
+ * Splits `prerender.format` from the options that `@angular/build:application` understands.
+ * With `outputMode`, `@angular/build` does not consider the `prerender` option and warns about it.
+ * `format` is considered there, so a `prerender` object that only carries `format` (and the default
+ * `discoverRoutes: true`) is dropped when the build prerenders pages, to avoid that warning.
+ */
+export function toApplicationOptions(options: Schema): {
+  applicationOptions: ApplicationBuilderOptions;
+  format: PrerenderFormat;
+} {
+  const { prerender, ...rest } = options;
+  if (typeof prerender !== 'object' || prerender === null) {
+    return { applicationOptions: { ...rest, prerender }, format: 'directory' };
+  }
+
+  const { format = 'directory', ...prerenderOptions } = prerender;
+  const onlyFormat = prerenderOptions.routesFile === undefined && prerenderOptions.discoverRoutes !== false;
+  const dropPrerender = rest.outputMode !== undefined && !!rest.server && onlyFormat;
+
+  return {
+    applicationOptions: { ...rest, prerender: dropPrerender ? undefined : prerenderOptions },
+    format
+  };
+}
+
+/**
+ * Runs `@angular/build:application` and, with `prerender.format: "file"`,
  * writes prerendered routes as `foo.html` instead of `foo/index.html`.
  * Whenever the "file" format does not apply, the build behaves like `@angular/build:application`
  * and logs a warning. Exported separately for testing purposes.
@@ -37,9 +53,9 @@ export async function* executeBuild(
   options: Schema,
   context: BuilderContext
 ): AsyncIterable<BuilderOutput> {
-  const { prerenderFormat = 'directory', ...applicationOptions } = options;
+  const { applicationOptions, format } = toApplicationOptions(options);
 
-  if (prerenderFormat !== 'file') {
+  if (format !== 'file') {
     yield* buildApplication(applicationOptions, context);
 
     return;
@@ -47,8 +63,8 @@ export async function* executeBuild(
 
   if (shipsServer(applicationOptions)) {
     context.logger.warn(
-      `The "prerenderFormat" option set to "file" is not considered when the build produces a server ` +
-        `("outputMode" set to "server", or "ssr" without "outputMode"). Prerendered routes are written to '<route>/index.html'.`
+      `The "prerender.format" option set to "file" is not considered when the build produces a server ` +
+        `("outputMode" set to "server", or "ssr" without "outputMode").`
     );
     yield* buildApplication(applicationOptions, context);
 
@@ -57,12 +73,11 @@ export async function* executeBuild(
 
   const install = installFileFormat(path.dirname(require.resolve('@angular/build/package.json')));
   if (!install.installed) {
-    context.logger.warn(`The "prerenderFormat" option set to "file" is not considered: ${install.reason}`);
+    context.logger.warn(`The "prerender.format" option set to "file" is not considered: ${install.reason}`);
     yield* buildApplication(applicationOptions, context);
 
     return;
   }
-  setReservedFiles(reservedFiles(applicationOptions));
 
   // A successful build whose pages did not pass through the wrapper kept the directory layout:
   // nothing was prerendered, or this version of @angular/build no longer calls the wrapped function.
@@ -71,7 +86,7 @@ export async function* executeBuild(
     const calls = getPrerenderCalls();
     if (result.success && calls === callsBefore) {
       context.logger.warn(
-        `The "prerenderFormat" option set to "file" had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
+        `The "prerender.format" option set to "file" had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
           `Check that prerendering is enabled ("outputMode" set to "static" with server routes, or "prerender"). ` +
           `If it is, this version of @angular/build is not supported.`
       );
