@@ -62,10 +62,7 @@ export async function* executeBuild(
   }
 
   if (shipsServer(applicationOptions)) {
-    context.logger.warn(
-      `The "prerender.format" option set to "file" is not considered when the build produces a server ` +
-        `("outputMode" set to "server", or "ssr" without "outputMode").`
-    );
+    context.logger.warn('The "prerender.format" option is not considered when the build produces a server.');
     yield* buildApplication(applicationOptions, context);
 
     return;
@@ -73,7 +70,7 @@ export async function* executeBuild(
 
   const install = installFileFormat(path.dirname(require.resolve('@angular/build/package.json')));
   if (!install.installed) {
-    context.logger.warn(`The "prerender.format" option set to "file" is not considered: ${install.reason}`);
+    context.logger.warn(`The "prerender.format" option is not considered: ${install.reason}`);
     yield* buildApplication(applicationOptions, context);
 
     return;
@@ -86,7 +83,7 @@ export async function* executeBuild(
     const calls = getPrerenderCalls();
     if (result.success && calls === callsBefore) {
       context.logger.warn(
-        `The "prerender.format" option set to "file" had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
+        `The "prerender.format" option had no effect: no pages were prerendered through @angular-schule/prerender-format. ` +
           `Check that prerendering is enabled ("outputMode" set to "static" with server routes, or "prerender"). ` +
           `If it is, this version of @angular/build is not supported.`
       );
