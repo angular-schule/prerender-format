@@ -64,6 +64,7 @@ ng build
 
 `ng add @angular-schule/prerender-format` installs the package, changes the builder of your build target in `angular.json` and sets `prerender.format`.
 `"format": "file"` only applies to static builds. If the build target (or one of its configurations) produces an SSR server, `ng add` still sets it up and shows a warning.
+If `prerender` contains `routesFile` or `discoverRoutes`, `ng add` stops, as they cannot be combined with `format`.
 
 ```json
 "build": {
@@ -97,7 +98,8 @@ The name and the values follow Astro's [`build.format`](#other-frameworks).
 Parent and child routes live side by side: `blog.html` next to the folder `blog/`.
 The start page of each locale (for example with base href `/en/`) stays `index.html`.
 
-`prerender.format` is also considered with `"outputMode": "static"`, where Angular ignores the other `prerender` settings.
+`prerender.format` cannot be combined with `routesFile` and `discoverRoutes`, which only apply to builds without `"outputMode"`.
+With `"outputMode": "static"`, Angular ignores every other value of `prerender`, and `prerender.format` is considered.
 
 ## 🔭 Other frameworks <a name="other-frameworks"></a>
 

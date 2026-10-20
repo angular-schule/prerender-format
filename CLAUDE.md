@@ -26,7 +26,7 @@ Build process: `prebuild` (clean) → `build` (tsc) → `postbuild` (copy metada
 ```bash
 npm run build:schema
 ```
-`application/schema.json` is generated: the schema of `@angular/build:application` from the installed version plus `format` in the `prerender` object. Regenerate it after updating `@angular/build` and commit the result. `npm test` fails if it is out of sync.
+`application/schema.json` is generated: the schema of `@angular/build:application` from the installed version plus a separate object with `format` in the `oneOf` of `prerender`, as in the pull request, so `format` cannot be combined with `routesFile` and `discoverRoutes`. `format` is required in that object, so `{}` keeps matching the object of `@angular/build` only. Regenerate it after updating `@angular/build` and commit the result. `npm test` fails if it is out of sync.
 
 ### Test
 ```bash
@@ -77,14 +77,14 @@ The option must never make a build fail. Whenever the "file" format does not app
 ## Architecture
 
 1. **Builder** (`src/application/`):
-   - `builder.ts` - Angular builder entry point, called by `ng build`. Takes `format` out of the `prerender` option (`toApplicationOptions()`) and delegates to `buildApplication`. With `outputMode`, `@angular/build` ignores `prerender`, so the builder drops it there and applies only `format`. If one of the other `prerender` settings has no effect, the builder warns with the rule and the message of the pull request. Whenever the "file" format does not apply (a server is produced, the internals of `@angular/build` differ, nothing went through the wrapper), it logs a warning and the build behaves like `@angular/build:application`.
+   - `builder.ts` - Angular builder entry point, called by `ng build`. Takes `format` out of the `prerender` option (`toApplicationOptions()`) and delegates to `buildApplication`. With `outputMode`, `@angular/build` ignores `prerender`, so the builder drops it there and applies only `format`. If `prerender` is set to anything other than an object with `format`, the builder warns with the rule and the message of the pull request. Whenever the "file" format does not apply (a server is produced, the internals of `@angular/build` differ, nothing went through the wrapper), it logs a warning and the build behaves like `@angular/build:application`.
    - `ships-server.ts` - The rule for "this build ships an SSR server", shared by builder and `ng add`.
    - `file-format.ts` - Wraps the internal `prerenderPages()` of `@angular/build`. `execute-post-bundle.js` reads it from the module's exports object at call time, so replacing the export takes effect for regular and localized builds.
    - `schema.json` - Generated, see above.
 
 2. **Schematic** (`src/ng-add.ts`):
    - Implements `ng add @angular-schule/prerender-format`
-   - Swaps the build target's builder and sets `prerender.format: "file"`, keeping other `prerender` settings
+   - Swaps the build target's builder and sets `"prerender": { "format": "file" }`; stops if `prerender` contains `routesFile` or `discoverRoutes`, which cannot be combined with `format`
    - Warns if the build target or one of its configurations produces an SSR server
 
 ### Internal API

@@ -9,10 +9,18 @@ describe('toApplicationOptions', () => {
     });
   });
 
-  it('removes the format from the prerender options of a build without outputMode', () => {
-    expect(toApplicationOptions({ prerender: { format: 'file', discoverRoutes: true } } as never)).toEqual({
-      applicationOptions: { prerender: { discoverRoutes: true } },
+  it('removes the format from the prerender option of a build without outputMode', () => {
+    expect(toApplicationOptions({ prerender: { format: 'file' } } as never)).toEqual({
+      applicationOptions: { prerender: {} },
       format: 'file',
+      prerenderIgnored: false
+    });
+  });
+
+  it('passes the prerender settings of @angular/build through without outputMode', () => {
+    expect(toApplicationOptions({ prerender: { routesFile: 'routes.txt', discoverRoutes: true } } as never)).toEqual({
+      applicationOptions: { prerender: { routesFile: 'routes.txt', discoverRoutes: true } },
+      format: 'directory',
       prerenderIgnored: false
     });
   });
@@ -22,7 +30,7 @@ describe('toApplicationOptions', () => {
       toApplicationOptions({
         outputMode: 'static',
         server: 'src/main.server.ts',
-        prerender: { format: 'file', discoverRoutes: true }
+        prerender: { format: 'file' }
       } as never)
     ).toEqual({
       applicationOptions: { outputMode: 'static', server: 'src/main.server.ts' },
@@ -32,14 +40,15 @@ describe('toApplicationOptions', () => {
   });
 
   it.each([
-    ['routesFile', { format: 'file', routesFile: 'routes.txt', discoverRoutes: true }],
-    ['discoverRoutes: false', { format: 'file', discoverRoutes: false }],
+    ['routesFile', { routesFile: 'routes.txt', discoverRoutes: true }],
+    ['discoverRoutes: false', { discoverRoutes: false }],
+    ['discoverRoutes: true', { discoverRoutes: true }],
     ['true', true],
     ['false', false]
   ])('reports prerender with %s as ignored with outputMode', (_, prerender) => {
     expect(toApplicationOptions({ outputMode: 'static', server: 'src/main.server.ts', prerender } as never)).toEqual({
       applicationOptions: { outputMode: 'static', server: 'src/main.server.ts' },
-      format: typeof prerender === 'object' ? 'file' : 'directory',
+      format: 'directory',
       prerenderIgnored: true
     });
   });

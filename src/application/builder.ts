@@ -11,7 +11,8 @@ type PrerenderObject = Exclude<ApplicationBuilderOptions['prerender'], boolean |
 
 export interface Schema extends Omit<ApplicationBuilderOptions, 'prerender'> {
   /**
-   * Same as the `prerender` option of `@angular/build:application`, plus `format`:
+   * Same as the `prerender` option of `@angular/build:application`, or an object with `format`
+   * (`schema.json` does not allow `format` together with `routesFile` or `discoverRoutes`):
    * - `directory` (default): `/foo` is written to `foo/index.html`
    * - `file`: `/foo` is written to `foo.html`, the start page stays `index.html`
    */
@@ -21,8 +22,8 @@ export interface Schema extends Omit<ApplicationBuilderOptions, 'prerender'> {
 /**
  * Splits `prerender.format` from the options that `@angular/build:application` understands.
  * With `outputMode`, `@angular/build` does not consider the `prerender` option, only `format` applies.
- * The `prerender` option is dropped there, and `prerenderIgnored` tells whether one of its other
- * settings has no effect, with the rule of angular/angular-cli#34180.
+ * The `prerender` option is dropped there, and `prerenderIgnored` tells whether it is set to anything
+ * other than an object with `format`, with the rule of angular/angular-cli#34180.
  */
 export function toApplicationOptions(options: Schema): {
   applicationOptions: ApplicationBuilderOptions;
@@ -40,12 +41,8 @@ export function toApplicationOptions(options: Schema): {
     };
   }
 
-  // Values are compared, as schema defaults are added to the "prerender" object.
   const prerenderIgnored =
-    prerender !== undefined &&
-    (typeof prerender !== 'object' ||
-      prerenderOptions.routesFile !== undefined ||
-      prerenderOptions.discoverRoutes === false);
+    prerender !== undefined && (typeof prerender === 'boolean' || !('format' in prerender));
 
   return { applicationOptions: rest, format, prerenderIgnored };
 }

@@ -17,17 +17,24 @@ const schema = JSON.parse(
 schema.$id = 'AngularSchulePrerenderFormatApplicationSchema';
 schema.title = `Application builder with prerender.format (based on @angular/build ${version})`;
 
-const prerenderObject = schema.properties.prerender.oneOf.find((variant) => variant.type === 'object');
-prerenderObject.properties.format = {
-  type: 'string',
-  description:
-    "Defines the file layout of prerendered pages. 'directory': '/foo' is written to 'foo/index.html'. " +
-    "'file': '/foo' is written to 'foo.html', which some hosting services serve for '/foo' without a redirect to '/foo/'. " +
-    "The root route of the application and of each locale is always written to 'index.html'. " +
-    'Only considered when the build does not produce a server.',
-  enum: ['directory', 'file'],
-  default: 'directory',
-};
+// `format` is an object of its own in `oneOf`, so it cannot be combined with `routesFile` and `discoverRoutes`.
+// It is required there, so that `{}` keeps matching the object of `@angular/build` only.
+schema.properties.prerender.oneOf.push({
+  type: 'object',
+  properties: {
+    format: {
+      type: 'string',
+      description:
+        "Defines the file layout of prerendered pages. 'directory': '/foo' is written to 'foo/index.html'. " +
+        "'file': '/foo' is written to 'foo.html', which some hosting services serve for '/foo' without a redirect to '/foo/'. " +
+        "The root route of the application and of each locale is always written to 'index.html'. " +
+        'Only considered when the build does not produce a server.',
+      enum: ['directory', 'file'],
+    },
+  },
+  additionalProperties: false,
+  required: ['format'],
+});
 
 const content = JSON.stringify(schema, null, 2) + '\n';
 

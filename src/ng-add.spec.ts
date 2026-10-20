@@ -69,13 +69,17 @@ describe('ng-add', () => {
     });
   });
 
-  it('adds the format to existing prerender settings', async () => {
+  it('refuses prerender settings that cannot be combined with the format', async () => {
     const tree = Tree.empty();
-    tree.create('angular.json', angularJson({ site: app(undefined, { prerender: { routesFile: 'routes.txt' } }) }));
+    tree.create(
+      'angular.json',
+      angularJson({ site: app(undefined, { prerender: { routesFile: 'routes.txt', discoverRoutes: false } }) })
+    );
 
-    await ngAdd({ project: 'site' })(tree, mockContext);
-
-    expect(buildTarget(tree, 'site').options).toEqual({ prerender: { routesFile: 'routes.txt', format: 'file' } });
+    await expect(ngAdd({ project: 'site' })(tree, mockContext)).rejects.toThrow(
+      '"prerender.format" cannot be combined with "routesFile" and "discoverRoutes".'
+    );
+    expect(buildTarget(tree, 'site').builder).toBe('@angular/build:application');
   });
 
   it('switches a build that produces a server, with a warning', async () => {

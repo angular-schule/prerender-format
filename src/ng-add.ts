@@ -66,11 +66,17 @@ export const ngAdd = (options: NgAddOptions) => async (tree: Tree, context: Sche
     .map(([name]) => name);
 
   const prerender = buildTarget.options?.prerender;
+  const prerenderSettings = isJsonObject(prerender) ? Object.keys(prerender).filter(key => key !== 'format') : [];
+  if (prerenderSettings.length > 0) {
+    const settings = prerenderSettings.map(key => `"${key}"`).join(' and ');
+    throw new SchematicsException(
+      `"prerender.format" cannot be combined with ${settings}. ` +
+        `Remove ${settings} from the "prerender" option of "${options.project}" and run ng add again.`
+    );
+  }
+
   buildTarget.builder = BUILDER_NAME;
-  buildTarget.options = {
-    ...buildTarget.options,
-    prerender: { ...(isJsonObject(prerender) ? prerender : {}), format: 'file' }
-  };
+  buildTarget.options = { ...buildTarget.options, prerender: { format: 'file' } };
 
   await workspaces.writeWorkspace(workspace, host);
 
