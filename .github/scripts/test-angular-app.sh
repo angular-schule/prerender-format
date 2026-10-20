@@ -7,7 +7,8 @@
 #   angular-version-range: version range for all @angular/* packages, e.g. "^22.0.0" or "~22.0.0"
 #
 # Checks: ng add and ng build warn for outputMode "server", ng add sets prerender.format "file",
-# and ng build writes <route>.html files (also for a second locale).
+# ng build with outputMode "static" shows no warning about the "prerender" option
+# and writes <route>.html files (also for a second locale).
 set -euo pipefail
 
 NG_NEW="$1"
@@ -85,7 +86,11 @@ export const routes: Routes = [
 ];
 EOF
 
-$NG build
+$NG build 2>&1 | tee output.log
+if grep -q 'The "prerender" option' output.log; then
+  echo 'Unexpected warning about the "prerender" option'
+  exit 1
+fi
 (cd "dist/$APP/browser" && find . -name '*.html' | sort)
 for file in index.html about.html blog.html blog/article.html; do
   test -f "dist/$APP/browser/$file" || { echo "Missing $file"; exit 1; }

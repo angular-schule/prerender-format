@@ -20,27 +20,34 @@ export interface Schema extends Omit<ApplicationBuilderOptions, 'prerender'> {
 
 /**
  * Splits `prerender.format` from the options that `@angular/build:application` understands.
- * With `outputMode`, `@angular/build` does not consider the `prerender` option and warns about it.
- * `format` is considered there, so a `prerender` object that only carries `format` (and the default
- * `discoverRoutes: true`) is dropped when the build prerenders pages, to avoid that warning.
+ * With `outputMode`, `@angular/build` does not consider the `prerender` option, only `format` applies.
+ * The `prerender` option is dropped there, and `prerenderIgnored` tells whether one of its other
+ * settings has no effect, with the rule of angular/angular-cli#34180.
  */
 export function toApplicationOptions(options: Schema): {
   applicationOptions: ApplicationBuilderOptions;
   format: PrerenderFormat;
+  prerenderIgnored: boolean;
 } {
   const { prerender, ...rest } = options;
-  if (typeof prerender !== 'object' || prerender === null) {
-    return { applicationOptions: { ...rest, prerender }, format: 'directory' };
+  const { format = 'directory', ...prerenderOptions } = typeof prerender === 'object' ? prerender : {};
+
+  if (rest.outputMode === undefined) {
+    return {
+      applicationOptions: { ...rest, prerender: typeof prerender === 'object' ? prerenderOptions : prerender },
+      format,
+      prerenderIgnored: false
+    };
   }
 
-  const { format = 'directory', ...prerenderOptions } = prerender;
-  const onlyFormat = prerenderOptions.routesFile === undefined && prerenderOptions.discoverRoutes !== false;
-  const dropPrerender = rest.outputMode !== undefined && !!rest.server && onlyFormat;
+  // Values are compared, as schema defaults are added to the "prerender" object.
+  const prerenderIgnored =
+    prerender !== undefined &&
+    (typeof prerender !== 'object' ||
+      prerenderOptions.routesFile !== undefined ||
+      prerenderOptions.discoverRoutes === false);
 
-  return {
-    applicationOptions: { ...rest, prerender: dropPrerender ? undefined : prerenderOptions },
-    format
-  };
+  return { applicationOptions: rest, format, prerenderIgnored };
 }
 
 /**
@@ -53,7 +60,13 @@ export async function* executeBuild(
   options: Schema,
   context: BuilderContext
 ): AsyncIterable<BuilderOutput> {
-  const { applicationOptions, format } = toApplicationOptions(options);
+  const { applicationOptions, format, prerenderIgnored } = toApplicationOptions(options);
+
+  if (prerenderIgnored) {
+    context.logger.warn(
+      'The "prerender" option has no effect when "outputMode" is specified (only "format" is supported).'
+    );
+  }
 
   if (format !== 'file') {
     yield* buildApplication(applicationOptions, context);

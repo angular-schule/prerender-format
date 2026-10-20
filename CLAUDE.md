@@ -77,7 +77,7 @@ The option must never make a build fail. Whenever the "file" format does not app
 ## Architecture
 
 1. **Builder** (`src/application/`):
-   - `builder.ts` - Angular builder entry point, called by `ng build`. Takes `format` out of the `prerender` option (`toApplicationOptions()`) and delegates to `buildApplication`. With `outputMode`, `@angular/build` ignores `prerender` and warns about it, so a `prerender` object that only carries `format` is dropped there. Whenever the "file" format does not apply (a server is produced, the internals of `@angular/build` differ, nothing went through the wrapper), it logs a warning and the build behaves like `@angular/build:application`.
+   - `builder.ts` - Angular builder entry point, called by `ng build`. Takes `format` out of the `prerender` option (`toApplicationOptions()`) and delegates to `buildApplication`. With `outputMode`, `@angular/build` ignores `prerender`, so the builder drops it there and applies only `format`. If one of the other `prerender` settings has no effect, the builder warns with the rule and the message of the pull request. Whenever the "file" format does not apply (a server is produced, the internals of `@angular/build` differ, nothing went through the wrapper), it logs a warning and the build behaves like `@angular/build:application`.
    - `ships-server.ts` - The rule for "this build ships an SSR server", shared by builder and `ng add`.
    - `file-format.ts` - Wraps the internal `prerenderPages()` of `@angular/build`. `execute-post-bundle.js` reads it from the module's exports object at call time, so replacing the export takes effect for regular and localized builds.
    - `schema.json` - Generated, see above.
